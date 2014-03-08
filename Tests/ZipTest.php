@@ -51,11 +51,12 @@ class ZipTest extends \PHPUnit_Framework_TestCase
 	}
 
 	/**
-	 * Test...
+	 * Tests the create Method.
 	 *
-	 * @todo Implement testCreate().
+	 * @group   JArchive
+	 * @return  void
 	 *
-	 * @return void
+	 * @covers  Joomla\Archive\Zip::create
 	 */
 	public function testCreate()
 	{
