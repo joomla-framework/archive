@@ -51,18 +51,45 @@ class ZipTest extends \PHPUnit_Framework_TestCase
 	}
 
 	/**
-	 * Test...
+	 * Tests the create Method.
 	 *
-	 * @todo Implement testCreate().
-	 *
-	 * @return void
+	 * @group   JArchive
+	 * @return  void
+	 * 
+	 * @covers  Joomla\Archive\Zip::create
 	 */
 	public function testCreate()
 	{
-		// Remove the following lines when you implement this test.
-		$this->markTestIncomplete(
-			'This test has not been implemented yet.'
-		);
+
+		if (!ArchiveZip::isSupported())
+		{
+
+			$this->markTestSkipped(
+				'ZIP files can not be created'
+			);
+
+			return;			
+
+		}
+
+		if (!is_file(self::$outputPath . '/logo-zip.png'))
+		{
+			$this->object->extract(__DIR__ . '/logo.zip', self::$outputPath);
+		}
+
+		if (is_file(__DIR__ . '/logo.zip'))
+		{
+			unlink(__DIR__ . '/logo.zip');
+		}
+
+		$this->object->create(__DIR__ . '/logo.zip', array(self::$outputPath . '/logo-zip.png'));
+		$this->assertTrue(is_file(__DIR__ . '/logo.zip'));
+
+		if (is_file(self::$outputPath . '/logo-zip.png'))
+		{
+			unlink(self::$outputPath . '/logo.zip');
+		}
+
 	}
 
 	/**
