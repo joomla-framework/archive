@@ -63,7 +63,7 @@ local pipeline(name, phpversion, params) = {
                 depends: [ "composer" ],
                 commands: [
                     "vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards",
-                    "vendor/bin/phpcs -p --report=full --extensions=php --standard=Joomla src/"
+                    "vendor/bin/phpcs -p --report=full --extensions=php --standard=ruleset.xml src/"
                 ]
             },
             {
@@ -118,5 +118,5 @@ local pipeline(name, phpversion, params) = {
     pipeline("7.2", "7.2", "--prefer-stable"),
     pipeline("7.3", "7.3", "--prefer-stable"),
     pipeline("7.4", "7.4", "--prefer-stable"),
-    pipeline("8.0", "8.0", "--ignore-platform-reqs")
+    pipeline("8.0", "8.0", "--ignore-platform-reqs --prefer-stable")
 ]

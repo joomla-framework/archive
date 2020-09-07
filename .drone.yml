@@ -21,7 +21,7 @@ steps:
   image: joomlaprojects/docker-images:php7.4
   commands:
   - vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards
-  - vendor/bin/phpcs -p --report=full --extensions=php --standard=Joomla src/
+  - vendor/bin/phpcs -p --report=full --extensions=php --standard=ruleset.xml src/
 
 - name: phpmd
   image: joomlaprojects/docker-images:php7.4
@@ -369,7 +369,7 @@ steps:
   image: joomlaprojects/docker-images:php8.0
   commands:
   - php -v
-  - composer update --ignore-platform-reqs
+  - composer update --ignore-platform-reqs --prefer-stable
   - wget https://ci.joomla.org/artifacts/phpunit8_php8_match.patch
   - patch -N -p0 < phpunit8_php8_match.patch
   volumes:
@@ -389,6 +389,6 @@ volumes:
 
 ---
 kind: signature
-hmac: d7cb4fa4b1bc806c1554903a00e906712f8ca96f23f56ca22a9c0656779a11ca
+hmac: 8fdc66b7d6248591b1985775f6e0c7e12f85203dd1415a3a087a95ab436f4eb9
 
 ...
