@@ -300,6 +300,11 @@ class Zip implements ExtractableInterface
 
 			$buffer = $zip->getStream($file);
 
+			if ($buffer === false)
+			{
+				throw new \RuntimeException('Unable to read ZIP entry');
+			}
+
 			if (File::write($destination . '/' . $file, $buffer) === false)
 			{
 				fclose($buffer);
