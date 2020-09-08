@@ -277,7 +277,7 @@ class Zip implements ExtractableInterface
 	{
 		$zip = new \ZipArchive;
 
-		if (!$zip->open($archive))
+		if ($zip->open($archive) !== true)
 		{
 			throw new \RuntimeException('Unable to open archive');
 		}
