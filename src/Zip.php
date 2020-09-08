@@ -275,9 +275,9 @@ class Zip implements ExtractableInterface
 	 */
 	protected function extractNative($archive, $destination)
 	{
-		$zip = zip_open($archive);
+		$zip = new \ZipArchive;
 
-		if (!\is_resource($zip))
+		if (!$zip->open($archive))
 		{
 			throw new \RuntimeException('Unable to open archive');
 		}
@@ -289,27 +289,28 @@ class Zip implements ExtractableInterface
 		}
 
 		// Read files in the archive
-		while ($file = @zip_read($zip))
+		for ($index = 0; $index < $zip->numFiles; $index++)
 		{
-			if (!zip_entry_open($zip, $file, 'r'))
+			$file = $zip->getNameIndex($index);
+
+			if (substr($file, -1) === '/')
 			{
-				throw new \RuntimeException('Unable to read ZIP entry');
+				continue;
 			}
 
-			if (substr(zip_entry_name($file), \strlen(zip_entry_name($file)) - 1) != '/')
+			$buffer = $zip->getStream($file);
+
+			if (File::write($destination . '/' . $file, $buffer) === false)
 			{
-				$buffer = zip_entry_read($file, zip_entry_filesize($file));
+				fclose($buffer);
 
-				if (File::write($destination . '/' . zip_entry_name($file), $buffer) === false)
-				{
-					throw new \RuntimeException('Unable to write ZIP entry to file ' . $destination . '/' . zip_entry_name($file));
-				}
-
-				zip_entry_close($file);
+				throw new \RuntimeException('Unable to write ZIP entry to file ' . $destination . '/' . $file);
 			}
+
+			fclose($buffer);
 		}
 
-		@zip_close($zip);
+		$zip->close();
 
 		return true;
 	}
