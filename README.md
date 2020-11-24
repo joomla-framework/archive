@@ -80,5 +80,5 @@ composer require joomla/archive "2.0.*@dev"
 If you want to include the test sources, use
 
 ```sh
-composer require --prefer-source joomla/archive "~1.0"
+composer require --prefer-source joomla/archive "2.0.*@dev"
 ```
