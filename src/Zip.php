@@ -430,7 +430,10 @@ class Zip implements ExtractableInterface
 				throw new \RuntimeException('Invalid ZIP Data');
 			}
 
-			$info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', substr($data, $lfhStart + 8, 25));
+			$info                         = unpack(
+				'vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength',
+				substr($data, $lfhStart + 8, 25)
+			);
 			$name                         = substr($data, $lfhStart + 30, $info['Length']);
 			$entries[$name]['_dataStart'] = $lfhStart + 30 + $info['Length'] + $info['ExtraLength'];
 
@@ -679,8 +682,8 @@ class Zip implements ExtractableInterface
 	/**
 	 * Check if a path is below a given destination path
 	 *
-	 * @param   string  $destination
-	 * @param   string  $path
+	 * @param   string  $destination  Root path
+	 * @param   string  $path         Path to check
 	 *
 	 * @return  boolean
 	 */
