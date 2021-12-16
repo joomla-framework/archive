@@ -1,5 +1,7 @@
 .github/ export-ignore
+docs/ export-ignore
 Tests/ export-ignore
+.appveyor.yml export-ignore
 .drone.jsonnet export-ignore
 .drone.yml export-ignore
 .gitattributes export-ignore
