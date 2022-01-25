@@ -71,7 +71,7 @@ class ArchiveTest extends ArchiveTestCase
 	/**
 	 * @testdox  The Archive object is instantiated correctly
 	 *
-	 * @covers   Joomla\Archive\Archive::__construct
+	 * @covers   \Joomla\Archive\Archive::__construct
 	 */
 	public function test__construct()
 	{
@@ -89,7 +89,7 @@ class ArchiveTest extends ArchiveTestCase
 	 * @param   string   $adapterType        Type of adaptar that will be used
 	 * @param   string   $extractedFilename  Name of the file to extracted file
 	 *
-	 * @covers        Joomla\Archive\Archive::extract
+	 * @covers        \Joomla\Archive\Archive::extract
 	 * @dataProvider  dataExtract
 	 */
 	public function testExtract($filename, $adapterType, $extractedFilename)
@@ -118,7 +118,7 @@ class ArchiveTest extends ArchiveTestCase
 	/**
 	 * @testdox  Extracting an unknown archive type throws an Exception
 	 *
-	 * @covers   Joomla\Archive\Archive::extract
+	 * @covers   \Joomla\Archive\Archive::extract
 	 * @expectedException  \Joomla\Archive\Exception\UnknownArchiveException
 	 */
 	public function testExtractUnknown()
@@ -135,7 +135,7 @@ class ArchiveTest extends ArchiveTestCase
 	 * @param   string   $adapterType        Type of adapter to load
 	 * @param   boolean  $expectedException  Flag if an Exception is expected
 	 *
-	 * @covers        Joomla\Archive\Archive::getAdapter
+	 * @covers        \Joomla\Archive\Archive::getAdapter
 	 * @dataProvider  dataAdapters
 	 */
 	public function testGetAdapter($adapterType, $expectedException)
@@ -161,7 +161,7 @@ class ArchiveTest extends ArchiveTestCase
 	/**
 	 * @testdox  Adapters can be set to the Archive
 	 *
-	 * @covers   Joomla\Archive\Archive::setAdapter
+	 * @covers   \Joomla\Archive\Archive::setAdapter
 	 */
 	public function testSetAdapter()
 	{
@@ -175,7 +175,7 @@ class ArchiveTest extends ArchiveTestCase
 	/**
 	 * @testdox  Setting an unknown adapter throws an Exception
 	 *
-	 * @covers             Joomla\Archive\Archive::setAdapter
+	 * @covers             \Joomla\Archive\Archive::setAdapter
 	 * @expectedException  \Joomla\Archive\Exception\UnsupportedArchiveException
 	 */
 	public function testSetAdapterUnknownException()
