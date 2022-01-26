@@ -39,13 +39,13 @@ class ArchiveTest extends ArchiveTestCase
 	public function dataAdapters()
 	{
 		// Adapter Type, Expected Exception
-		return [
-			['Zip', false],
-			['Tar', false],
-			['Gzip', false],
-			['Bzip2', false],
-			['Unknown', true],
-		];
+		return array(
+			array('Zip', false),
+			array('Tar', false),
+			array('Gzip', false),
+			array('Bzip2', false),
+			array('Unknown', true),
+		);
 	}
 
 	/**
@@ -56,16 +56,16 @@ class ArchiveTest extends ArchiveTestCase
 	public function dataExtract()
 	{
 		// Filename, Adapter Type, Extracted Filename, Output is a File
-		return [
+		return array(
 			// See https://github.com/joomla-framework/archive/issues/17
-			['Caps-Logo.ZIP', 'Zip', 'logo-zip.png'],
-			['logo.zip', 'Zip', 'logo-zip.png'],
-			['logo.tar', 'Tar', 'logo-tar.png'],
-			['logo.png.gz', 'Gzip', 'logo.png'],
-			['logo.png.bz2', 'Bzip2', 'logo.png'],
-			['logo.tar.gz', 'Gzip', 'logo-tar-gz.png'],
-			['logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'],
-		];
+			array('Caps-Logo.ZIP', 'Zip', 'logo-zip.png'),
+			array('logo.zip', 'Zip', 'logo-zip.png'),
+			array('logo.tar', 'Tar', 'logo-tar.png'),
+			array('logo.png.gz', 'Gzip', 'logo.png'),
+			array('logo.png.bz2', 'Bzip2', 'logo.png'),
+			array('logo.tar.gz', 'Gzip', 'logo-tar-gz.png'),
+			array('logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'),
+		);
 	}
 
 	/**
@@ -75,7 +75,7 @@ class ArchiveTest extends ArchiveTestCase
 	 */
 	public function test__construct()
 	{
-		$options = ['tmp_path' => dirname(__FILE__)];
+		$options = array('tmp_path' => dirname(__FILE__));
 
 		$fixture = new Archive($options);
 
