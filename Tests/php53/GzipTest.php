@@ -4,9 +4,10 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-namespace Joomla\Archive\Tests;
+namespace Joomla\Archive\Tests\php53;
 
 use Joomla\Archive\Gzip as ArchiveGzip;
+use Joomla\Archive\Tests\ArchiveTestCase;
 use Joomla\Test\TestHelper;
 
 /**
