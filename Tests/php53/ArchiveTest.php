@@ -76,7 +76,7 @@ class ArchiveTest extends ArchiveTestCase
 	 */
 	public function test__construct()
 	{
-		$options = array('tmp_path' => __DIR__);
+		$options = array('tmp_path' => dirname(__FILE__));
 
 		$fixture = new Archive($options);
 

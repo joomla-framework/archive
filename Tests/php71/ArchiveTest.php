@@ -24,6 +24,7 @@ class ArchiveTest extends ArchiveTestCase
 
 	/**
 	 * Sets up the fixture.
+	 * @return void
 	 */
 	protected function setUp(): void
 	{
@@ -146,11 +147,11 @@ class ArchiveTest extends ArchiveTestCase
 			// expectException was added in PHPUnit 5.2 and setExpectedException removed in 6.0
 			if (method_exists($this, 'expectException'))
 			{
-				$this->expectException('Joomla\Archive\Exception\UnsupportedArchiveException');
+				$this->expectException(\Joomla\Archive\Exception\UnsupportedArchiveException::class);
 			}
 			else
 			{
-				$this->setExpectedException('Joomla\Archive\Exception\UnsupportedArchiveException');
+				$this->setExpectedException(\Joomla\Archive\Exception\UnsupportedArchiveException::class);
 			}
 		}
 
