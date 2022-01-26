@@ -4,7 +4,7 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-namespace Joomla\Archive\Tests;
+namespace Joomla\Archive\Tests\php71;
 
 use PHPUnit\Framework\TestCase;
 
@@ -30,7 +30,7 @@ abstract class ArchiveTestCase extends TestCase
 	/**
 	 * Sets up the fixture.
 	 */
-	protected function setUp()
+	protected function setUp(): void
 	{
 		parent::setUp();
 

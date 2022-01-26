@@ -7,7 +7,6 @@
 namespace Joomla\Archive\Tests\php53;
 
 use Joomla\Archive\Tar as ArchiveTar;
-use Joomla\Archive\Tests\ArchiveTestCase;
 
 /**
  * Test class for Joomla\Archive\Tar.

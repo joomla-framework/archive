@@ -7,7 +7,6 @@
 namespace Joomla\Archive\Tests\php53;
 
 use Joomla\Archive\Gzip as ArchiveGzip;
-use Joomla\Archive\Tests\ArchiveTestCase;
 use Joomla\Test\TestHelper;
 
 /**

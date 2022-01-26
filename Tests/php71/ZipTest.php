@@ -6,7 +6,6 @@
 
 namespace Joomla\Archive\Tests\php71;
 
-use Joomla\Archive\Tests\ArchiveTestCase;
 use Joomla\Archive\Zip as ArchiveZip;
 use Joomla\Test\TestHelper;
 

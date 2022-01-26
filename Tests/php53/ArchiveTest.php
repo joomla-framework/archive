@@ -7,7 +7,6 @@
 namespace Joomla\Archive\Tests\php53;
 
 use Joomla\Archive\Archive;
-use Joomla\Archive\Tests\ArchiveTestCase;
 use Joomla\Archive\Zip as ArchiveZip;
 
 /**
@@ -40,13 +39,13 @@ class ArchiveTest extends ArchiveTestCase
 	public function dataAdapters()
 	{
 		// Adapter Type, Expected Exception
-		return array(
-			array('Zip', false),
-			array('Tar', false),
-			array('Gzip', false),
-			array('Bzip2', false),
-			array('Unknown', true),
-		);
+		return [
+			['Zip', false],
+			['Tar', false],
+			['Gzip', false],
+			['Bzip2', false],
+			['Unknown', true],
+		];
 	}
 
 	/**
@@ -57,16 +56,16 @@ class ArchiveTest extends ArchiveTestCase
 	public function dataExtract()
 	{
 		// Filename, Adapter Type, Extracted Filename, Output is a File
-		return array(
+		return [
 			// See https://github.com/joomla-framework/archive/issues/17
-			array('Caps-Logo.ZIP', 'Zip', 'logo-zip.png'),
-			array('logo.zip', 'Zip', 'logo-zip.png'),
-			array('logo.tar', 'Tar', 'logo-tar.png'),
-			array('logo.png.gz', 'Gzip', 'logo.png'),
-			array('logo.png.bz2', 'Bzip2', 'logo.png'),
-			array('logo.tar.gz', 'Gzip', 'logo-tar-gz.png'),
-			array('logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'),
-		);
+			['Caps-Logo.ZIP', 'Zip', 'logo-zip.png'],
+			['logo.zip', 'Zip', 'logo-zip.png'],
+			['logo.tar', 'Tar', 'logo-tar.png'],
+			['logo.png.gz', 'Gzip', 'logo.png'],
+			['logo.png.bz2', 'Bzip2', 'logo.png'],
+			['logo.tar.gz', 'Gzip', 'logo-tar-gz.png'],
+			['logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'],
+		];
 	}
 
 	/**
@@ -76,7 +75,7 @@ class ArchiveTest extends ArchiveTestCase
 	 */
 	public function test__construct()
 	{
-		$options = array('tmp_path' => dirname(__FILE__));
+		$options = ['tmp_path' => dirname(__FILE__)];
 
 		$fixture = new Archive($options);
 
@@ -84,26 +83,24 @@ class ArchiveTest extends ArchiveTestCase
 	}
 
 	/**
-	 * @testdox  Archives can be extracted
+	 * @testdox       Archives can be extracted
 	 *
-	 * @param   string   $filename           Name of the file to extract
-	 * @param   string   $adapterType        Type of adaptar that will be used
-	 * @param   string   $extractedFilename  Name of the file to extracted file
+	 * @param  string  $filename           Name of the file to extract
+	 * @param  string  $adapterType        Type of adaptar that will be used
+	 * @param  string  $extractedFilename  Name of the file to extracted file
 	 *
 	 * @covers        \Joomla\Archive\Archive::extract
 	 * @dataProvider  dataExtract
 	 */
 	public function testExtract($filename, $adapterType, $extractedFilename)
 	{
-		if (!is_writable($this->outputPath) || !is_writable($this->fixture->options['tmp_path']))
-		{
+		if (!is_writable($this->outputPath) || !is_writable($this->fixture->options['tmp_path'])) {
 			$this->markTestSkipped('Folder not writable.');
 		}
 
 		$adapter = "Joomla\\Archive\\$adapterType";
 
-		if (!$adapter::isSupported())
-		{
+		if (!$adapter::isSupported()) {
 			$this->markTestSkipped($adapterType . ' files can not be extracted.');
 		}
 
@@ -131,25 +128,21 @@ class ArchiveTest extends ArchiveTestCase
 	}
 
 	/**
-	 * @testdox  Adapters can be retrieved
+	 * @testdox       Adapters can be retrieved
 	 *
-	 * @param   string   $adapterType        Type of adapter to load
-	 * @param   boolean  $expectedException  Flag if an Exception is expected
+	 * @param  string   $adapterType        Type of adapter to load
+	 * @param  boolean  $expectedException  Flag if an Exception is expected
 	 *
 	 * @covers        \Joomla\Archive\Archive::getAdapter
 	 * @dataProvider  dataAdapters
 	 */
 	public function testGetAdapter($adapterType, $expectedException)
 	{
-		if ($expectedException)
-		{
+		if ($expectedException) {
 			// expectException was added in PHPUnit 5.2 and setExpectedException removed in 6.0
-			if (method_exists($this, 'expectException'))
-			{
+			if (method_exists($this, 'expectException')) {
 				$this->expectException('Joomla\Archive\Exception\UnsupportedArchiveException');
-			}
-			else
-			{
+			} else {
 				$this->setExpectedException('Joomla\Archive\Exception\UnsupportedArchiveException');
 			}
 		}
@@ -174,7 +167,7 @@ class ArchiveTest extends ArchiveTestCase
 	}
 
 	/**
-	 * @testdox  Setting an unknown adapter throws an Exception
+	 * @testdox            Setting an unknown adapter throws an Exception
 	 *
 	 * @covers             \Joomla\Archive\Archive::setAdapter
 	 * @expectedException  \Joomla\Archive\Exception\UnsupportedArchiveException

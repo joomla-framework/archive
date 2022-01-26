@@ -7,7 +7,6 @@
 namespace Joomla\Archive\Tests\php71;
 
 use Joomla\Archive\Bzip2 as ArchiveBzip2;
-use Joomla\Archive\Tests\ArchiveTestCase;
 
 /**
  * Test class for Joomla\Archive\Bzip2.
