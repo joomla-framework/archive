@@ -18,14 +18,13 @@ local composer(phpversion, params) = {
     volumes: volumes,
     commands: [
         "php -v",
-        "composer update " + params
+        "composer update " + params,
     ]
 };
 
 local phpunit(phpversion) = {
     name: "PHPUnit",
     image: "joomlaprojects/docker-images:php" + phpversion,
-    [if phpversion == "8.0" then "failure"]: "ignore",
     commands: ["vendor/bin/phpunit"]
 };
 
@@ -56,12 +55,22 @@ local pipeline(name, phpversion, params) = {
                 ]
             },
             {
-                name: "phpcs",
+                name: "phpcs (loose)",
                 image: "joomlaprojects/docker-images:php7.4",
                 depends: [ "composer" ],
                 commands: [
                     "vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards",
                     "vendor/bin/phpcs -p --report=full --extensions=php --standard=ruleset.xml src/"
+                ]
+            },
+            {
+                name: "phpcs (strict)",
+                image: "joomlaprojects/docker-images:php7.4",
+                depends: [ "composer" ],
+                failure: "ignore",
+                commands: [
+                    "vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards",
+                    "vendor/bin/phpcs -p --report=full --extensions=php --standard=Joomla src/"
                 ]
             },
             {
@@ -106,7 +115,24 @@ local pipeline(name, phpversion, params) = {
             }
         ]
     },
-    pipeline("5.3 lowest", "5.3", "--prefer-stable --prefer-lowest"),
+    {
+        kind: "pipeline",
+        name: "PHP 5.3 lowest",
+        volumes: hostvolumes,
+        steps: [
+            {
+                name: "composer",
+                image: "joomlaprojects/docker-images:php5.3",
+                volumes: volumes,
+                commands: [
+                    "php -v",
+                    "composer update --prefer-stable --prefer-lowest",
+                    "composer update phpunit/phpunit-mock-objects"
+                ]
+            },
+            phpunit("5.3")
+        ]
+    },
     pipeline("5.3", "5.3", "--prefer-stable"),
     pipeline("5.6", "5.6", "--prefer-stable"),
     pipeline("7.0", "7.0", "--prefer-stable"),
@@ -114,5 +140,6 @@ local pipeline(name, phpversion, params) = {
     pipeline("7.2", "7.2", "--prefer-stable"),
     pipeline("7.3", "7.3", "--prefer-stable"),
     pipeline("7.4", "7.4", "--prefer-stable"),
-    pipeline("8.0", "8.0", "--ignore-platform-reqs")
+    pipeline("8.0", "8.0", "--prefer-stable"),
+    pipeline("8.1", "8.1", "--prefer-stable")
 ]

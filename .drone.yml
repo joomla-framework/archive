@@ -17,11 +17,18 @@ steps:
   - name: composer-cache
     path: /tmp/composer-cache
 
-- name: phpcs
+- name: phpcs (loose)
   image: joomlaprojects/docker-images:php7.4
   commands:
   - vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards
   - vendor/bin/phpcs -p --report=full --extensions=php --standard=ruleset.xml src/
+
+- name: phpcs (strict)
+  image: joomlaprojects/docker-images:php7.4
+  commands:
+  - vendor/bin/phpcs --config-set installed_paths vendor/joomla/coding-standards
+  - vendor/bin/phpcs -p --report=full --extensions=php --standard=Joomla src/
+  failure: ignore
 
 - name: phpmd
   image: joomlaprojects/docker-images:php7.4
@@ -70,6 +77,7 @@ steps:
   commands:
   - php -v
   - composer update --prefer-stable --prefer-lowest
+  - composer update phpunit/phpunit-mock-objects
   volumes:
   - name: composer-cache
     path: /tmp/composer-cache
@@ -293,7 +301,7 @@ steps:
   image: joomlaprojects/docker-images:php8.0
   commands:
   - php -v
-  - composer update --ignore-platform-reqs
+  - composer update --prefer-stable
   volumes:
   - name: composer-cache
     path: /tmp/composer-cache
@@ -302,7 +310,34 @@ steps:
   image: joomlaprojects/docker-images:php8.0
   commands:
   - vendor/bin/phpunit
-  failure: ignore
+
+volumes:
+- name: composer-cache
+  host:
+    path: /tmp/composer-cache
+
+---
+kind: pipeline
+name: PHP 8.1
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: composer
+  image: joomlaprojects/docker-images:php8.1
+  commands:
+  - php -v
+  - composer update --prefer-stable
+  volumes:
+  - name: composer-cache
+    path: /tmp/composer-cache
+
+- name: PHPUnit
+  image: joomlaprojects/docker-images:php8.1
+  commands:
+  - vendor/bin/phpunit
 
 volumes:
 - name: composer-cache
@@ -311,6 +346,6 @@ volumes:
 
 ---
 kind: signature
-hmac: 01100781da09efef1f62c6f78d3dc08468e3775d76ff601d694f335e6c6a9ca2
+hmac: 63696f568d09e4415ac610c8fff25efea860960c4738c8fe5eb4da69f5b7091d
 
 ...
