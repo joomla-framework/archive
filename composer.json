@@ -11,7 +11,7 @@
     "license": "GPL-2.0-or-later",
     "require": {
         "php": "^5.3.10|^7.0|^8.0",
-        "joomla/filesystem": "~1.6"
+        "joomla/filesystem": "^1.6.1"
     },
     "require-dev": {
         "joomla/coding-standards": "^2.0@alpha",
