@@ -684,6 +684,8 @@ class Zip implements ExtractableInterface
 	 * @param   string  $path         Path to check
 	 *
 	 * @return  boolean
+	 *
+	 * @since   1.1.10
 	 */
 	private function isBelow($destination, $path)
 	{
