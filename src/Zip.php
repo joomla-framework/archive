@@ -680,7 +680,7 @@ class Zip implements ExtractableInterface
 	 *
 	 * @return  boolean
 	 *
-	 * @since   __DEPLOY_VERSION__
+	 * @since   1.1.10
 	 */
 	private function isBelow($destination, $path): bool
 	{
