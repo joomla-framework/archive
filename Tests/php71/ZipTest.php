@@ -18,17 +18,18 @@ class ZipTest extends ArchiveTestCase
 	 * @testdox  The zip adapter is instantiated correctly
 	 *
 	 * @covers   \Joomla\Archive\Zip::__construct
+	 * @throws   \ReflectionException
 	 */
-	public function test__construct()
+	public function test__construct(): void
 	{
 		$object = new ArchiveZip;
 
-		$this->assertAttributeEmpty('options', $object);
+		$this->assertEmpty(TestHelper::getValue($object, 'options'));
 
 		$options = array('use_streams' => false);
 		$object  = new ArchiveZip($options);
 
-		$this->assertAttributeSame($options, 'options', $object);
+		$this->assertSame($options, TestHelper::getValue($object, 'options'));
 	}
 
 	/**
@@ -39,7 +40,7 @@ class ZipTest extends ArchiveTestCase
 	 * @covers   \Joomla\Archive\Zip::unix2DOSTime
 	 * @covers   \Joomla\Archive\Zip::createZIPFile
 	 */
-	public function testCreate()
+	public function testCreate(): void
 	{
 		$object = new ArchiveZip;
 
@@ -65,8 +66,9 @@ class ZipTest extends ArchiveTestCase
 	 * @testdox  An archive can be extracted natively
 	 *
 	 * @covers   \Joomla\Archive\Zip::extractNative
+	 * @throws   \ReflectionException
 	 */
-	public function testExtractNative()
+	public function testExtractNative(): void
 	{
 		if (!ArchiveZip::hasNativeSupport())
 		{
@@ -96,8 +98,9 @@ class ZipTest extends ArchiveTestCase
 	 * @covers   \Joomla\Archive\Zip::extractCustom
 	 * @covers   \Joomla\Archive\Zip::readZipInfo
 	 * @covers   \Joomla\Archive\Zip::getFileData
+	 * @throws   \ReflectionException
 	 */
-	public function testExtractCustom()
+	public function testExtractCustom(): void
 	{
 		if (!ArchiveZip::isSupported())
 		{
@@ -126,13 +129,11 @@ class ZipTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Zip::extract
 	 */
-	public function testExtract()
+	public function testExtract(): void
 	{
 		if (!ArchiveZip::isSupported())
 		{
 			$this->markTestSkipped('ZIP files can not be extracted.');
-
-			return;
 		}
 
 		$object = new ArchiveZip;
@@ -155,10 +156,11 @@ class ZipTest extends ArchiveTestCase
 	 * @testdox  If the archive cannot be found an Exception is thrown
 	 *
 	 * @covers             \Joomla\Archive\Zip::extract
-	 * @expectedException  \RuntimeException
+	 *
 	 */
-	public function testExtractException()
+	public function testExtractException(): void
 	{
+		$this->expectException(\RuntimeException::class);
 		$object = new ArchiveZip;
 
 		$object->extract(
@@ -172,7 +174,7 @@ class ZipTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Zip::hasNativeSupport
 	 */
-	public function testHasNativeSupport()
+	public function testHasNativeSupport(): void
 	{
 		$this->assertEquals(
 			extension_loaded('zip'),
@@ -186,7 +188,7 @@ class ZipTest extends ArchiveTestCase
 	 * @covers   \Joomla\Archive\Zip::isSupported
 	 * @depends  testHasNativeSupport
 	 */
-	public function testIsSupported()
+	public function testIsSupported(): void
 	{
 		$this->assertEquals(
 			ArchiveZip::hasNativeSupport() || extension_loaded('zlib'),
@@ -199,7 +201,7 @@ class ZipTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Zip::checkZipData
 	 */
-	public function testCheckZipData()
+	public function testCheckZipData(): void
 	{
 		$object = new ArchiveZip;
 

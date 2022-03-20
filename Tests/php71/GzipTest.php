@@ -18,17 +18,18 @@ class GzipTest extends ArchiveTestCase
 	 * @testdox  The gzip adapter is instantiated correctly
 	 *
 	 * @covers   \Joomla\Archive\Gzip::__construct
+	 * @throws   \ReflectionException
 	 */
-	public function test__construct()
+	public function test__construct(): void
 	{
 		$object = new ArchiveGzip;
 
-		$this->assertAttributeEmpty('options', $object);
+		$this->assertEmpty(TestHelper::getValue($object, 'options'));
 
 		$options = array('use_streams' => false);
 		$object  = new ArchiveGzip($options);
 
-		$this->assertAttributeSame($options, 'options', $object);
+		$this->assertSame($options, TestHelper::getValue($object, 'options'));
 	}
 
 	/**
@@ -36,13 +37,11 @@ class GzipTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Gzip::extract
 	 */
-	public function testExtract()
+	public function testExtract(): void
 	{
 		if (!ArchiveGzip::isSupported())
 		{
 			$this->markTestSkipped('Gzip files can not be extracted.');
-
-			return;
 		}
 
 		$object = new ArchiveGzip;
@@ -67,7 +66,7 @@ class GzipTest extends ArchiveTestCase
 	 * @covers   \Joomla\Archive\Gzip::extract
 	 * @uses     \Joomla\Archive\Gzip::getFilePosition
 	 */
-	public function testExtractWithStreams()
+	public function testExtractWithStreams(): void
 	{
 		$this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
 
@@ -96,7 +95,7 @@ class GzipTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Gzip::isSupported
 	 */
-	public function testIsSupported()
+	public function testIsSupported(): void
 	{
 		$this->assertSame(
 			extension_loaded('zlib'),
@@ -108,8 +107,9 @@ class GzipTest extends ArchiveTestCase
 	 * @testdox  The file position is detected
 	 *
 	 * @covers   \Joomla\Archive\Gzip::getFilePosition
+	 * @throws   \ReflectionException
 	 */
-	public function testGetFilePosition()
+	public function testGetFilePosition(): void
 	{
 		$object = new ArchiveGzip;
 

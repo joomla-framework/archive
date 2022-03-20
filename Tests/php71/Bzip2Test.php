@@ -7,6 +7,7 @@
 namespace Joomla\Archive\Tests\php71;
 
 use Joomla\Archive\Bzip2 as ArchiveBzip2;
+use Joomla\Test\TestHelper;
 
 /**
  * Test class for Joomla\Archive\Bzip2.
@@ -17,17 +18,18 @@ class Bzip2Test extends ArchiveTestCase
 	 * @testdox  The bzip2 adapter is instantiated correctly
 	 *
 	 * @covers   \Joomla\Archive\Bzip2::__construct
+	 * @throws   \ReflectionException
 	 */
-	public function test__construct()
+	public function test__construct(): void
 	{
 		$object = new ArchiveBzip2;
 
-		$this->assertAttributeEmpty('options', $object);
+		$this->assertEmpty(TestHelper::getValue($object, 'options'));
 
 		$options = array('use_streams' => false);
 		$object  = new ArchiveBzip2($options);
 
-		$this->assertAttributeSame($options, 'options', $object);
+		$this->assertSame($options, TestHelper::getValue($object, 'options'));
 	}
 
 	/**
@@ -35,7 +37,7 @@ class Bzip2Test extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Bzip2::extract
 	 */
-	public function testExtract()
+	public function testExtract(): void
 	{
 		if (!ArchiveBzip2::isSupported())
 		{
@@ -63,7 +65,7 @@ class Bzip2Test extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Bzip2::extract
 	 */
-	public function testExtractWithStreams()
+	public function testExtractWithStreams(): void
 	{
 		$this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
 
@@ -92,7 +94,7 @@ class Bzip2Test extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Bzip2::isSupported
 	 */
-	public function testIsSupported()
+	public function testIsSupported(): void
 	{
 		$this->assertSame(
 			extension_loaded('bz2'),

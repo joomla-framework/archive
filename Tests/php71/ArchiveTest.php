@@ -7,6 +7,8 @@
 namespace Joomla\Archive\Tests\php71;
 
 use Joomla\Archive\Archive;
+use Joomla\Archive\Exception\UnknownArchiveException;
+use Joomla\Archive\Exception\UnsupportedArchiveException;
 use Joomla\Archive\Zip as ArchiveZip;
 
 /**
@@ -23,6 +25,7 @@ class ArchiveTest extends ArchiveTestCase
 
 	/**
 	 * Sets up the fixture.
+	 *
 	 * @return void
 	 */
 	protected function setUp(): void
@@ -37,7 +40,7 @@ class ArchiveTest extends ArchiveTestCase
 	 *
 	 * @return  array
 	 */
-	public function dataAdapters()
+	public function dataAdapters(): array
 	{
 		// Adapter Type, Expected Exception
 		return array(
@@ -54,7 +57,7 @@ class ArchiveTest extends ArchiveTestCase
 	 *
 	 * @return  array
 	 */
-	public function dataExtract()
+	public function dataExtract(): array
 	{
 		// Filename, Adapter Type, Extracted Filename, Output is a File
 		return array(
@@ -74,26 +77,26 @@ class ArchiveTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Archive::__construct
 	 */
-	public function test__construct()
+	public function test__construct(): void
 	{
 		$options = array('tmp_path' => __DIR__);
 
 		$fixture = new Archive($options);
 
-		$this->assertAttributeSame($options, 'options', $fixture);
+		$this->assertSame($options, $fixture->options);
 	}
 
 	/**
-	 * @testdox  Archives can be extracted
+	 * @testdox       Archives can be extracted
 	 *
-	 * @param   string   $filename           Name of the file to extract
-	 * @param   string   $adapterType        Type of adaptar that will be used
-	 * @param   string   $extractedFilename  Name of the file to extracted file
+	 * @param   string  $filename           Name of the file to extract
+	 * @param   string  $adapterType        Type of adaptar that will be used
+	 * @param   string  $extractedFilename  Name of the file to extracted file
 	 *
 	 * @covers        \Joomla\Archive\Archive::extract
 	 * @dataProvider  dataExtract
 	 */
-	public function testExtract($filename, $adapterType, $extractedFilename)
+	public function testExtract(string $filename, string $adapterType, string $extractedFilename): void
 	{
 		if (!is_writable($this->outputPath) || !is_writable($this->fixture->options['tmp_path']))
 		{
@@ -102,6 +105,7 @@ class ArchiveTest extends ArchiveTestCase
 
 		$adapter = "Joomla\\Archive\\$adapterType";
 
+		/** @noinspection PhpUndefinedMethodInspection */
 		if (!$adapter::isSupported())
 		{
 			$this->markTestSkipped($adapterType . ' files can not be extracted.');
@@ -120,10 +124,12 @@ class ArchiveTest extends ArchiveTestCase
 	 * @testdox  Extracting an unknown archive type throws an Exception
 	 *
 	 * @covers   \Joomla\Archive\Archive::extract
-	 * @expectedException  \Joomla\Archive\Exception\UnknownArchiveException
+	 *
 	 */
-	public function testExtractUnknown()
+	public function testExtractUnknown(): void
 	{
+		$this->expectException(UnknownArchiveException::class);
+
 		$this->fixture->extract(
 			$this->inputPath . '/logo.dat',
 			$this->outputPath
@@ -131,7 +137,7 @@ class ArchiveTest extends ArchiveTestCase
 	}
 
 	/**
-	 * @testdox  Adapters can be retrieved
+	 * @testdox       Adapters can be retrieved
 	 *
 	 * @param   string   $adapterType        Type of adapter to load
 	 * @param   boolean  $expectedException  Flag if an Exception is expected
@@ -139,19 +145,11 @@ class ArchiveTest extends ArchiveTestCase
 	 * @covers        \Joomla\Archive\Archive::getAdapter
 	 * @dataProvider  dataAdapters
 	 */
-	public function testGetAdapter($adapterType, $expectedException)
+	public function testGetAdapter(string $adapterType, bool $expectedException): void
 	{
 		if ($expectedException)
 		{
-			// expectException was added in PHPUnit 5.2 and setExpectedException removed in 6.0
-			if (method_exists($this, 'expectException'))
-			{
-				$this->expectException(\Joomla\Archive\Exception\UnsupportedArchiveException::class);
-			}
-			else
-			{
-				$this->setExpectedException(\Joomla\Archive\Exception\UnsupportedArchiveException::class);
-			}
+			$this->expectException(UnsupportedArchiveException::class);
 		}
 
 		$adapter = $this->fixture->getAdapter($adapterType);
@@ -164,7 +162,7 @@ class ArchiveTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Archive::setAdapter
 	 */
-	public function testSetAdapter()
+	public function testSetAdapter(): void
 	{
 		$this->assertSame(
 			$this->fixture,
@@ -174,13 +172,15 @@ class ArchiveTest extends ArchiveTestCase
 	}
 
 	/**
-	 * @testdox  Setting an unknown adapter throws an Exception
+	 * @testdox            Setting an unknown adapter throws an Exception
 	 *
 	 * @covers             \Joomla\Archive\Archive::setAdapter
-	 * @expectedException  \Joomla\Archive\Exception\UnsupportedArchiveException
+	 *
 	 */
-	public function testSetAdapterUnknownException()
+	public function testSetAdapterUnknownException(): void
 	{
+		$this->expectException(UnsupportedArchiveException::class);
+
 		$this->fixture->setAdapter('unknown', 'unknown-class');
 	}
 }

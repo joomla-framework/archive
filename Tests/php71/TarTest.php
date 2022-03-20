@@ -7,6 +7,7 @@
 namespace Joomla\Archive\Tests\php71;
 
 use Joomla\Archive\Tar as ArchiveTar;
+use Joomla\Test\TestHelper;
 
 /**
  * Test class for Joomla\Archive\Tar.
@@ -17,17 +18,18 @@ class TarTest extends ArchiveTestCase
 	 * @testdox  The tar adapter is instantiated correctly
 	 *
 	 * @covers   \Joomla\Archive\Tar::__construct
+	 * @throws   \ReflectionException
 	 */
-	public function test__construct()
+	public function test__construct(): void
 	{
 		$object = new ArchiveTar;
 
-		$this->assertAttributeEmpty('options', $object);
+		$this->assertEmpty(TestHelper::getValue($object, 'options'));
 
 		$options = array('foo' => 'bar');
 		$object = new ArchiveTar($options);
 
-		$this->assertAttributeSame($options, 'options', $object);
+		$this->assertSame($options, TestHelper::getValue($object, 'options'));
 	}
 
 	/**
@@ -36,7 +38,7 @@ class TarTest extends ArchiveTestCase
 	 * @covers   \Joomla\Archive\Tar::extract
 	 * @covers   \Joomla\Archive\Tar::getTarInfo
 	 */
-	public function testExtract()
+	public function testExtract(): void
 	{
 		if (!ArchiveTar::isSupported())
 		{
@@ -59,7 +61,7 @@ class TarTest extends ArchiveTestCase
 	 *
 	 * @covers   \Joomla\Archive\Tar::isSupported
 	 */
-	public function testIsSupported()
+	public function testIsSupported(): void
 	{
 		$this->assertTrue(ArchiveTar::isSupported());
 	}
