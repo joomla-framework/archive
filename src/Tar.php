@@ -256,7 +256,7 @@ class Tar implements ExtractableInterface
 	 *
 	 * @return  boolean
 	 *
-	 * @since   __DEPLOY_VERSION__
+	 * @since   2.0.1
 	 */
 	private function isBelow($destination, $path): bool
 	{
