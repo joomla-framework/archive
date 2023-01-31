@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Part of the Joomla Framework Archive Package
  *
@@ -615,7 +616,7 @@ class Zip implements ExtractableInterface
      * @return  boolean  True if successful
      *
      * @since   1.0
-     * @todo	Review and finish implementation
+     * @todo    Review and finish implementation
      */
     private function createZipFile(array $contents, array $ctrlDir, string $path): bool
     {
