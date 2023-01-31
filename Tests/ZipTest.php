@@ -14,201 +14,200 @@ use Joomla\Test\TestHelper;
  */
 class ZipTest extends ArchiveTestCase
 {
-	/**
-	 * @testdox  The zip adapter is instantiated correctly
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function test__construct()
-	{
-		$object = new ArchiveZip;
+    /**
+     * @testdox  The zip adapter is instantiated correctly
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function test__construct()
+    {
+        $object = new ArchiveZip();
 
-		$this->assertEmpty(TestHelper::getValue($object, 'options'));
+        $this->assertEmpty(TestHelper::getValue($object, 'options'));
 
-		$options = ['use_streams' => false];
-		$object  = new ArchiveZip($options);
+        $options = ['use_streams' => false];
+        $object  = new ArchiveZip($options);
 
-		$this->assertSame($options, TestHelper::getValue($object, 'options'));
-	}
+        $this->assertSame($options, TestHelper::getValue($object, 'options'));
+    }
 
-	/**
-	 * @testdox  An archive can be created
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testCreate()
-	{
-		$object = new ArchiveZip;
+    /**
+     * @testdox  An archive can be created
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testCreate()
+    {
+        $object = new ArchiveZip();
 
-		$result = $object->create(
-			$this->outputPath . '/logo.zip',
-			[
-				[
-					'name' => 'logo.png',
-					'data' => file_get_contents($this->inputPath . '/logo.png'),
-				],
-			]
-		);
+        $result = $object->create(
+            $this->outputPath . '/logo.zip',
+            [
+                [
+                    'name' => 'logo.png',
+                    'data' => file_get_contents($this->inputPath . '/logo.png'),
+                ],
+            ]
+        );
 
-		$this->assertTrue($result);
+        $this->assertTrue($result);
 
-		$dataZip = file_get_contents($this->outputPath . '/logo.zip');
-		$this->assertTrue(
-			$object->checkZipData($dataZip)
-		);
+        $dataZip = file_get_contents($this->outputPath . '/logo.zip');
+        $this->assertTrue(
+            $object->checkZipData($dataZip)
+        );
 
-		@unlink($this->outputPath . '/logo.zip');
-	}
+        @unlink($this->outputPath . '/logo.zip');
+    }
 
-	/**
-	 * @testdox  An archive can be extracted natively
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testExtractNative()
-	{
-		if (!ArchiveZip::hasNativeSupport())
-		{
-			$this->markTestSkipped('ZIP files can not be extracted natively.');
-		}
+    /**
+     * @testdox  An archive can be extracted natively
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testExtractNative()
+    {
+        if (!ArchiveZip::hasNativeSupport()) {
+            $this->markTestSkipped('ZIP files can not be extracted natively.');
+        }
 
-		$object = new ArchiveZip;
+        $object = new ArchiveZip();
 
-		TestHelper::invoke(
-			$object,
-			'extractNative',
-			$this->inputPath . '/logo.zip', $this->outputPath
-		);
+        TestHelper::invoke(
+            $object,
+            'extractNative',
+            $this->inputPath . '/logo.zip',
+            $this->outputPath
+        );
 
-		$this->assertFileExists($this->outputPath . '/logo-zip.png');
-		$this->assertFileEquals(
-			$this->outputPath . '/logo-zip.png',
-			$this->inputPath . '/logo.png'
-		);
+        $this->assertFileExists($this->outputPath . '/logo-zip.png');
+        $this->assertFileEquals(
+            $this->outputPath . '/logo-zip.png',
+            $this->inputPath . '/logo.png'
+        );
 
-		@unlink($this->outputPath . '/logo-zip.png');
-	}
+        @unlink($this->outputPath . '/logo-zip.png');
+    }
 
-	/**
-	 * @testdox  An archive can be extracted with the custom interface
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testExtractCustom()
-	{
-		if (!ArchiveZip::isSupported())
-		{
-			$this->markTestSkipped('ZIP files can not be extracted.');
-		}
+    /**
+     * @testdox  An archive can be extracted with the custom interface
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testExtractCustom()
+    {
+        if (!ArchiveZip::isSupported()) {
+            $this->markTestSkipped('ZIP files can not be extracted.');
+        }
 
-		$object = new ArchiveZip;
+        $object = new ArchiveZip();
 
-		TestHelper::invoke(
-			$object,
-			'extractCustom',
-			$this->inputPath . '/logo.zip', $this->outputPath
-		);
+        TestHelper::invoke(
+            $object,
+            'extractCustom',
+            $this->inputPath . '/logo.zip',
+            $this->outputPath
+        );
 
-		$this->assertFileExists($this->outputPath . '/logo-zip.png');
-		$this->assertFileEquals(
-			$this->outputPath . '/logo-zip.png',
-			$this->inputPath . '/logo.png'
-		);
+        $this->assertFileExists($this->outputPath . '/logo-zip.png');
+        $this->assertFileEquals(
+            $this->outputPath . '/logo-zip.png',
+            $this->inputPath . '/logo.png'
+        );
 
-		@unlink($this->outputPath . '/logo-zip.png');
-	}
+        @unlink($this->outputPath . '/logo-zip.png');
+    }
 
-	/**
-	 * @testdox  An archive can be extracted
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testExtract()
-	{
-		if (!ArchiveZip::isSupported())
-		{
-			$this->markTestSkipped('ZIP files can not be extracted.');
+    /**
+     * @testdox  An archive can be extracted
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testExtract()
+    {
+        if (!ArchiveZip::isSupported()) {
+            $this->markTestSkipped('ZIP files can not be extracted.');
 
-			return;
-		}
+            return;
+        }
 
-		$object = new ArchiveZip;
+        $object = new ArchiveZip();
 
-		$object->extract(
-			$this->inputPath . '/logo.zip',
-			$this->outputPath
-		);
+        $object->extract(
+            $this->inputPath . '/logo.zip',
+            $this->outputPath
+        );
 
-		$this->assertFileExists($this->outputPath . '/logo-zip.png');
-		$this->assertFileEquals(
-			$this->outputPath . '/logo-zip.png',
-			$this->inputPath . '/logo.png'
-		);
+        $this->assertFileExists($this->outputPath . '/logo-zip.png');
+        $this->assertFileEquals(
+            $this->outputPath . '/logo-zip.png',
+            $this->inputPath . '/logo.png'
+        );
 
-		@unlink($this->outputPath . '/logo-zip.png');
-	}
+        @unlink($this->outputPath . '/logo-zip.png');
+    }
 
-	/**
-	 * @testdox  If the archive cannot be found an Exception is thrown
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testExtractException()
-	{
-		$this->expectException(\RuntimeException::class);
+    /**
+     * @testdox  If the archive cannot be found an Exception is thrown
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testExtractException()
+    {
+        $this->expectException(\RuntimeException::class);
 
-		$object = new ArchiveZip;
+        $object = new ArchiveZip();
 
-		$object->extract(
-			$this->inputPath . '/foobar.zip',
-			$this->outputPath
-		);
-	}
+        $object->extract(
+            $this->inputPath . '/foobar.zip',
+            $this->outputPath
+        );
+    }
 
-	/**
-	 * @testdox  The adapter detects if the environment has native support
-	 *
-	 * @covers   Joomla\Archive\Zip::hasNativeSupport
-	 */
-	public function testHasNativeSupport()
-	{
-		$this->assertEquals(
-			extension_loaded('zip'),
-			ArchiveZip::hasNativeSupport()
-		);
-	}
+    /**
+     * @testdox  The adapter detects if the environment has native support
+     *
+     * @covers   Joomla\Archive\Zip::hasNativeSupport
+     */
+    public function testHasNativeSupport()
+    {
+        $this->assertEquals(
+            extension_loaded('zip'),
+            ArchiveZip::hasNativeSupport()
+        );
+    }
 
-	/**
-	 * @testdox  The adapter detects if the environment is supported
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 * @depends  testHasNativeSupport
-	 */
-	public function testIsSupported()
-	{
-		$this->assertEquals(
-			ArchiveZip::hasNativeSupport() || extension_loaded('zlib'),
-			ArchiveZip::isSupported()
-		);
-	}
+    /**
+     * @testdox  The adapter detects if the environment is supported
+     *
+     * @covers   Joomla\Archive\Zip
+     * @depends  testHasNativeSupport
+     */
+    public function testIsSupported()
+    {
+        $this->assertEquals(
+            ArchiveZip::hasNativeSupport() || extension_loaded('zlib'),
+            ArchiveZip::isSupported()
+        );
+    }
 
-	/**
-	 * @testdox  The adapter correctly checks ZIP data
-	 *
-	 * @covers   Joomla\Archive\Zip
-	 */
-	public function testCheckZipData()
-	{
-		$object = new ArchiveZip;
+    /**
+     * @testdox  The adapter correctly checks ZIP data
+     *
+     * @covers   Joomla\Archive\Zip
+     */
+    public function testCheckZipData()
+    {
+        $object = new ArchiveZip();
 
-		$dataZip = file_get_contents($this->inputPath . '/logo.zip');
-		$this->assertTrue(
-			$object->checkZipData($dataZip)
-		);
+        $dataZip = file_get_contents($this->inputPath . '/logo.zip');
+        $this->assertTrue(
+            $object->checkZipData($dataZip)
+        );
 
-		$dataTar = file_get_contents($this->inputPath . '/logo.tar');
-		$this->assertFalse(
-			$object->checkZipData($dataTar)
-		);
-	}
+        $dataTar = file_get_contents($this->inputPath . '/logo.tar');
+        $this->assertFalse(
+            $object->checkZipData($dataTar)
+        );
+    }
 }

@@ -14,114 +14,112 @@ use Joomla\Test\TestHelper;
  */
 class GzipTest extends ArchiveTestCase
 {
-	/**
-	 * @testdox  The gzip adapter is instantiated correctly
-	 *
-	 * @covers   Joomla\Archive\Gzip
-	 */
-	public function test__construct()
-	{
-		$object = new ArchiveGzip;
+    /**
+     * @testdox  The gzip adapter is instantiated correctly
+     *
+     * @covers   Joomla\Archive\Gzip
+     */
+    public function test__construct()
+    {
+        $object = new ArchiveGzip();
 
-		$this->assertEmpty(TestHelper::getValue($object, 'options'));
+        $this->assertEmpty(TestHelper::getValue($object, 'options'));
 
-		$options = ['use_streams' => false];
-		$object  = new ArchiveGzip($options);
+        $options = ['use_streams' => false];
+        $object  = new ArchiveGzip($options);
 
-		$this->assertSame($options, TestHelper::getValue($object, 'options'));
-	}
+        $this->assertSame($options, TestHelper::getValue($object, 'options'));
+    }
 
-	/**
-	 * @testdox  An archive can be extracted
-	 *
-	 * @covers   Joomla\Archive\Gzip
-	 */
-	public function testExtract()
-	{
-		if (!ArchiveGzip::isSupported())
-		{
-			$this->markTestSkipped('Gzip files can not be extracted.');
+    /**
+     * @testdox  An archive can be extracted
+     *
+     * @covers   Joomla\Archive\Gzip
+     */
+    public function testExtract()
+    {
+        if (!ArchiveGzip::isSupported()) {
+            $this->markTestSkipped('Gzip files can not be extracted.');
 
-			return;
-		}
+            return;
+        }
 
-		$object = new ArchiveGzip;
+        $object = new ArchiveGzip();
 
-		$object->extract(
-			$this->inputPath . '/logo.png.gz',
-			$this->outputPath . '/logo-gz.png'
-		);
+        $object->extract(
+            $this->inputPath . '/logo.png.gz',
+            $this->outputPath . '/logo-gz.png'
+        );
 
-		$this->assertFileExists($this->outputPath . '/logo-gz.png');
-		$this->assertFileEquals(
-			$this->outputPath . '/logo-gz.png',
-			$this->inputPath . '/logo.png'
-		);
+        $this->assertFileExists($this->outputPath . '/logo-gz.png');
+        $this->assertFileEquals(
+            $this->outputPath . '/logo-gz.png',
+            $this->inputPath . '/logo.png'
+        );
 
-		@unlink($this->outputPath . '/logo-gz.png');
-	}
+        @unlink($this->outputPath . '/logo-gz.png');
+    }
 
-	/**
-	 * @testdox  An archive can be extracted via streams
-	 *
-	 * @covers   Joomla\Archive\Gzip
-	 */
-	public function testExtractWithStreams()
-	{
-		$this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
+    /**
+     * @testdox  An archive can be extracted via streams
+     *
+     * @covers   Joomla\Archive\Gzip
+     */
+    public function testExtractWithStreams()
+    {
+        $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
 
-		if (!ArchiveGzip::isSupported())
-		{
-			$this->markTestSkipped('Gzip files can not be extracted.');
-		}
+        if (!ArchiveGzip::isSupported()) {
+            $this->markTestSkipped('Gzip files can not be extracted.');
+        }
 
-		$object = new ArchiveGzip(['use_streams' => true]);
-		$object->extract(
-			$this->inputPath . '/logo.png.gz',
-			$this->outputPath . '/logo-gz.png'
-		);
+        $object = new ArchiveGzip(['use_streams' => true]);
+        $object->extract(
+            $this->inputPath . '/logo.png.gz',
+            $this->outputPath . '/logo-gz.png'
+        );
 
-		$this->assertFileExists($this->outputPath . '/logo-gz.png');
-		$this->assertFileEquals(
-			$this->outputPath . '/logo-gz.png',
-			$this->inputPath . '/logo.png'
-		);
+        $this->assertFileExists($this->outputPath . '/logo-gz.png');
+        $this->assertFileEquals(
+            $this->outputPath . '/logo-gz.png',
+            $this->inputPath . '/logo.png'
+        );
 
-		@unlink($this->outputPath . '/logo-gz.png');
-	}
+        @unlink($this->outputPath . '/logo-gz.png');
+    }
 
-	/**
-	 * @testdox  The adapter detects if the environment is supported
-	 *
-	 * @covers   Joomla\Archive\Gzip
-	 */
-	public function testIsSupported()
-	{
-		$this->assertSame(
-			extension_loaded('zlib'),
-			ArchiveGzip::isSupported()
-		);
-	}
+    /**
+     * @testdox  The adapter detects if the environment is supported
+     *
+     * @covers   Joomla\Archive\Gzip
+     */
+    public function testIsSupported()
+    {
+        $this->assertSame(
+            extension_loaded('zlib'),
+            ArchiveGzip::isSupported()
+        );
+    }
 
-	/**
-	 * @testdox  The file position is detected
-	 *
-	 * @covers   Joomla\Archive\Gzip
-	 */
-	public function testGetFilePosition()
-	{
-		$object = new ArchiveGzip;
+    /**
+     * @testdox  The file position is detected
+     *
+     * @covers   Joomla\Archive\Gzip
+     */
+    public function testGetFilePosition()
+    {
+        $object = new ArchiveGzip();
 
-		// @todo use an all flags enabled file
-		TestHelper::setValue(
-			$object,
-			'data',
-			file_get_contents($this->inputPath . '/logo.png.gz')
-		);
+        // @todo use an all flags enabled file
+        TestHelper::setValue(
+            $object,
+            'data',
+            file_get_contents($this->inputPath . '/logo.png.gz')
+        );
 
-		$this->assertEquals(
-			22,
-			$object->getFilePosition()
-		);
-	}
+        $this->assertEquals(
+            22,
+            $object->getFilePosition()
+        );
+    }
 }
