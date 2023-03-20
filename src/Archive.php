@@ -153,13 +153,13 @@ class Archive
      *
      * @return  $this
      *
-     * @since   1.0
      * @throws  UnsupportedArchiveException if the adapter type is not supported
+     * @since   1.0
      */
     public function setAdapter($type, $class, $override = true)
     {
         if ($override || !isset($this->adapters[$type])) {
-            if (!\is_object($class) && !class_exists($class)) {
+            if (!class_exists($class)) {
                 throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not found.', $type, $class));
             }
 
