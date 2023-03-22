@@ -100,7 +100,7 @@ class Tar implements ExtractableInterface
      */
     public function extract($archive, $destination)
     {
-        $this->metadata = null;
+        $this->metadata = [];
         $this->data     = file_get_contents($archive);
 
         if (!$this->data) {

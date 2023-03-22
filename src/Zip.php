@@ -219,7 +219,7 @@ class Zip implements ExtractableInterface
      */
     protected function extractCustom($archive, $destination)
     {
-        $this->metadata = null;
+        $this->metadata = [];
         $this->data     = file_get_contents($archive);
 
         if (!$this->data) {
