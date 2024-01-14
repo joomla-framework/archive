@@ -347,7 +347,7 @@ class Zip implements ExtractableInterface
             $endOfCentralDirectory = unpack(
                 'vNumberOfDisk/vNoOfDiskWithStartOfCentralDirectory/vNoOfCentralDirectoryEntriesOnDisk/' .
                 'vTotalCentralDirectoryEntries/VSizeOfCentralDirectory/VCentralDirectoryOffset/vCommentLength',
-                substr($data, $last + 4)
+                substr($data, $last + 4, 18)
             );
             $offset = $endOfCentralDirectory['CentralDirectoryOffset'];
         }
@@ -404,7 +404,7 @@ class Zip implements ExtractableInterface
                 throw new \RuntimeException('Invalid ZIP Data');
             }
 
-            $info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', substr($data, $lfhStart + 8, 25));
+            $info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', substr($data, $lfhStart + 8, 22));
             $name                         = substr($data, $lfhStart + 30, $info['Length']);
             $entries[$name]['_dataStart'] = $lfhStart + 30 + $info['Length'] + $info['ExtraLength'];
 

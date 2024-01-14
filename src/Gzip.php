@@ -162,7 +162,7 @@ class Gzip implements ExtractableInterface
     {
         // Gzipped file... unpack it first
         $position = 0;
-        $info     = @ unpack('CCM/CFLG/VTime/CXFL/COS', substr($this->data, $position + 2));
+        $info     = @ unpack('CCM/CFLG/VTime/CXFL/COS', substr($this->data, $position + 2, 8));
 
         if (!$info) {
             throw new \RuntimeException('Unable to decompress data.');
