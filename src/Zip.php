@@ -347,7 +347,8 @@ class Zip implements ExtractableInterface
             $endOfCentralDirectory = unpack(
                 'vNumberOfDisk/vNoOfDiskWithStartOfCentralDirectory/vNoOfCentralDirectoryEntriesOnDisk/' .
                 'vTotalCentralDirectoryEntries/VSizeOfCentralDirectory/VCentralDirectoryOffset/vCommentLength',
-                $data, $last + 4
+                $data,
+                $last + 4
             );
             $offset = $endOfCentralDirectory['CentralDirectoryOffset'];
         }
