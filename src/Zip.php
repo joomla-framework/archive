@@ -347,7 +347,8 @@ class Zip implements ExtractableInterface
             $endOfCentralDirectory = unpack(
                 'vNumberOfDisk/vNoOfDiskWithStartOfCentralDirectory/vNoOfCentralDirectoryEntriesOnDisk/' .
                 'vTotalCentralDirectoryEntries/VSizeOfCentralDirectory/VCentralDirectoryOffset/vCommentLength',
-                substr($data, $last + 4)
+                $data,
+                $last + 4
             );
             $offset = $endOfCentralDirectory['CentralDirectoryOffset'];
         }
@@ -361,7 +362,7 @@ class Zip implements ExtractableInterface
                 throw new \RuntimeException('Invalid ZIP Data');
             }
 
-            $info = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength', substr($data, $fhStart + 10, 20));
+            $info = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength', $data, $fhStart + 10);
             $name = substr($data, $fhStart + 46, $info['Length']);
 
             $entries[$name] = [
@@ -390,7 +391,7 @@ class Zip implements ExtractableInterface
                 throw new \RuntimeException('Invalid ZIP data');
             }
 
-            $info = unpack('vInternal/VExternal/VOffset', substr($data, $fhStart + 36, 10));
+            $info = unpack('vInternal/VExternal/VOffset', $data, $fhStart + 36);
 
             $entries[$name]['type'] = ($info['Internal'] & 0x01) ? 'text' : 'binary';
             $entries[$name]['attr'] = (($info['External'] & 0x10) ? 'D' : '-') . (($info['External'] & 0x20) ? 'A' : '-')
@@ -404,7 +405,7 @@ class Zip implements ExtractableInterface
                 throw new \RuntimeException('Invalid ZIP Data');
             }
 
-            $info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', substr($data, $lfhStart + 8, 25));
+            $info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', $data, $lfhStart + 8);
             $name                         = substr($data, $lfhStart + 30, $info['Length']);
             $entries[$name]['_dataStart'] = $lfhStart + 30 + $info['Length'] + $info['ExtraLength'];
 

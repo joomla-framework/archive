@@ -162,7 +162,7 @@ class Gzip implements ExtractableInterface
     {
         // Gzipped file... unpack it first
         $position = 0;
-        $info     = @ unpack('CCM/CFLG/VTime/CXFL/COS', substr($this->data, $position + 2));
+        $info     = @ unpack('CCM/CFLG/VTime/CXFL/COS', $this->data, $position + 2);
 
         if (!$info) {
             throw new \RuntimeException('Unable to decompress data.');
@@ -171,7 +171,7 @@ class Gzip implements ExtractableInterface
         $position += 10;
 
         if ($info['FLG'] & self::FLAGS['FEXTRA']) {
-            $XLEN = unpack('vLength', substr($this->data, $position + 0, 2));
+            $XLEN = unpack('vLength', $this->data, $position);
             $XLEN = $XLEN['Length'];
             $position += $XLEN + 2;
         }
@@ -187,7 +187,7 @@ class Gzip implements ExtractableInterface
         }
 
         if ($info['FLG'] & self::FLAGS['FHCRC']) {
-            $hcrc = unpack('vCRC', substr($this->data, $position + 0, 2));
+            $hcrc = unpack('vCRC', $this->data, $position);
             $hcrc = $hcrc['CRC'];
             $position += 2;
         }
