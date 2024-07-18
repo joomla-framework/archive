@@ -1,4 +1,4 @@
-# The Archive Package [![Build Status](https://ci.joomla.org/api/badges/joomla-framework/archive/status.svg?ref=refs/heads/2.0-dev)](https://ci.joomla.org/joomla-framework/archive)
+# The Archive Package [![Build Status](https://ci.joomla.org/api/badges/joomla-framework/archive/status.svg?ref=refs/heads/3.x-dev)](https://ci.joomla.org/joomla-framework/archive)
 
 [![Latest Stable Version](https://poser.pugx.org/joomla/archive/v/stable)](https://packagist.org/packages/joomla/archive)
 [![Total Downloads](https://poser.pugx.org/joomla/archive/downloads)](https://packagist.org/packages/joomla/archive)
@@ -16,7 +16,7 @@ Loading files of the `t*` archive type will uncompress the archive using the app
 
 ## Requirements
 
-- PHP 7.0 or later
+- PHP 8.1 or later
 - zlib extension for GZip support
 - bz2 extension for BZip2 support
 
@@ -61,12 +61,12 @@ $archive->extract('archive.zip', 'destination');
 
 ## Installation via Composer
 
-Add `"joomla/archive": "~2.0"` to the require block in your composer.json and then run `composer install`.
+Add `"joomla/archive": "~3.0"` to the require block in your composer.json and then run `composer install`.
 
 ```json
 {
 	"require": {
-		"joomla/archive": "~2.0"
+		"joomla/archive": "~3.0"
 	}
 }
 ```
@@ -74,11 +74,11 @@ Add `"joomla/archive": "~2.0"` to the require block in your composer.json and th
 Alternatively, you can simply run the following from the command line:
 
 ```sh
-composer require joomla/archive "~2.0"
+composer require joomla/archive "~3.0"
 ```
 
 If you want to include the test sources, use
 
 ```sh
-composer require --prefer-source joomla/archive "~2.0"
+composer require --prefer-source joomla/archive "~3.0"
 ```
