@@ -39,7 +39,7 @@ class ArchiveTest extends ArchiveTestCase
      *
      * @return  \Generator
      */
-    public function dataAdapters(): \Generator
+    public static function dataAdapters(): \Generator
     {
         // Adapter Type, Expected Exception
         yield 'Zip Adapter' => ['Zip', false];
@@ -54,7 +54,7 @@ class ArchiveTest extends ArchiveTestCase
      *
      * @return  \Generator
      */
-    public function dataExtract(): \Generator
+    public static function dataExtract(): \Generator
     {
         // Filename, Adapter Type, Extracted Filename, Output is a File
         yield 'Zip adapter with capitalised file extension' => ['Caps-Logo.ZIP', 'Zip', 'logo-zip.png'];
