@@ -1,4 +1,4 @@
-# The Archive Package [![Build Status](https://ci.joomla.org/api/badges/joomla-framework/archive/status.svg?ref=refs/heads/3.x-dev)](https://ci.joomla.org/joomla-framework/archive)
+# The Archive Package [![Build Status](https://github.com/joomla-framework/archive/actions/workflows/ci.yml/badge.svg?branch=3.x-dev)](https://github.com/joomla-framework/archive)
 
 [![Latest Stable Version](https://poser.pugx.org/joomla/archive/v/stable)](https://packagist.org/packages/joomla/archive)
 [![Total Downloads](https://poser.pugx.org/joomla/archive/downloads)](https://packagist.org/packages/joomla/archive)
