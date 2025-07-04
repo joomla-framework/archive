@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /**
  * Part of the Joomla Framework Archive Package
@@ -76,14 +77,8 @@ class Tar implements ExtractableInterface
      * @since   1.0
      * @throws  \InvalidArgumentException
      */
-    public function __construct($options = [])
+    public function __construct(array|\ArrayAccess  $options = [])
     {
-        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
-            throw new \InvalidArgumentException(
-                'The options param must be an array or implement the ArrayAccess interface.'
-            );
-        }
-
         $this->options = $options;
     }
 

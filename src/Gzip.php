@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /**
  * Part of the Joomla Framework Archive Package
@@ -57,14 +58,8 @@ class Gzip implements ExtractableInterface
      * @since   1.0
      * @throws  \InvalidArgumentException
      */
-    public function __construct($options = [])
+    public function __construct(array|\ArrayAccess  $options = [])
     {
-        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
-            throw new \InvalidArgumentException(
-                'The options param must be an array or implement the ArrayAccess interface.'
-            );
-        }
-
         $this->options = $options;
     }
 
@@ -81,7 +76,7 @@ class Gzip implements ExtractableInterface
      */
     public function extract($archive, $destination)
     {
-        $this->data = null;
+        $this->data = '';
 
         if (!isset($this->options['use_streams']) || $this->options['use_streams'] == false) {
             $this->data = file_get_contents($archive);

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 /**
  * Part of the Joomla Framework Archive Package
@@ -110,14 +111,8 @@ class Zip implements ExtractableInterface
      * @since   1.0
      * @throws  \InvalidArgumentException
      */
-    public function __construct($options = [])
+    public function __construct(array|\ArrayAccess $options = [])
     {
-        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
-            throw new \InvalidArgumentException(
-                'The options param must be an array or implement the ArrayAccess interface.'
-            );
-        }
-
         $this->options = $options;
     }
 
@@ -219,8 +214,7 @@ class Zip implements ExtractableInterface
      */
     protected function extractCustom($archive, $destination)
     {
-        $this->metadata = [];
-        $this->data     = file_get_contents($archive);
+        $this->data = file_get_contents($archive);
 
         if (!$this->data) {
             throw new \RuntimeException('Unable to read archive');
@@ -410,7 +404,7 @@ class Zip implements ExtractableInterface
             $entries[$name]['_dataStart'] = $lfhStart + 30 + $info['Length'] + $info['ExtraLength'];
 
             // Bump the max execution time because not using the built in php zip libs makes this process slow.
-            @set_time_limit(ini_get('max_execution_time'));
+            @set_time_limit((int)ini_get('max_execution_time'));
         } while (($fhStart = strpos($data, self::CTRL_DIR_HEADER, $fhStart + 46)) !== false);
 
         $this->metadata = array_values($entries);
