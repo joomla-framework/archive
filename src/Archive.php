@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 /**
  * Part of the Joomla Framework Archive Package
@@ -7,6 +6,8 @@ declare(strict_types=1);
  * @copyright  Copyright (C) 2005 - 2021 Open Source Matters, Inc. All rights reserved.
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
+
+declare(strict_types=1);
 
 namespace Joomla\Archive;
 
@@ -46,7 +47,7 @@ class Archive
      * @since   1.0
      * @throws  \InvalidArgumentException
      */
-    public function __construct(array|\ArrayAccess  $options = [])
+    public function __construct(array|\ArrayAccess $options = [])
     {
         // Make sure we have a tmp directory.
         isset($options['tmp_path']) || $options['tmp_path'] = realpath(sys_get_temp_dir());

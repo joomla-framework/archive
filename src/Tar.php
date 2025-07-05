@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 /**
  * Part of the Joomla Framework Archive Package
@@ -7,6 +6,8 @@ declare(strict_types=1);
  * @copyright  Copyright (C) 2005 - 2021 Open Source Matters, Inc. All rights reserved.
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
+
+declare(strict_types=1);
 
 namespace Joomla\Archive;
 
@@ -76,7 +77,7 @@ class Tar implements ExtractableInterface
      *
      * @since   1.0
      */
-    public function __construct(array|\ArrayAccess  $options = [])
+    public function __construct(array|\ArrayAccess $options = [])
     {
         $this->options = $options;
     }
