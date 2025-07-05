@@ -164,7 +164,7 @@ class ArchiveTest extends ArchiveTestCase
     {
         $this->assertSame(
             $this->fixture,
-            $this->fixture->setAdapter('zip', new ArchiveZip()),
+            $this->fixture->setAdapter('zip', 'Joomla\Archive\Zip'),
             'The setAdapter method should return the current object.'
         );
     }
