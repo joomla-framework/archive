@@ -56,7 +56,6 @@ class Gzip implements ExtractableInterface
      * @param   array|\ArrayAccess  $options  An array of options
      *
      * @since   1.0
-     * @throws  \InvalidArgumentException
      */
     public function __construct(array|\ArrayAccess  $options = [])
     {

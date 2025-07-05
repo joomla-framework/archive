@@ -75,7 +75,6 @@ class Tar implements ExtractableInterface
      * @param   array|\ArrayAccess  $options  An array of options or an object that implements \ArrayAccess
      *
      * @since   1.0
-     * @throws  \InvalidArgumentException
      */
     public function __construct(array|\ArrayAccess  $options = [])
     {
