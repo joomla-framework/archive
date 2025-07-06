@@ -16,7 +16,7 @@ Loading files of the `t*` archive type will uncompress the archive using the app
 
 ## Requirements
 
-- PHP 8.1 or later
+- PHP 8.3 or later
 - zlib extension for GZip support
 - bz2 extension for BZip2 support
 
@@ -61,12 +61,12 @@ $archive->extract('archive.zip', 'destination');
 
 ## Installation via Composer
 
-Add `"joomla/archive": "~3.0"` to the require block in your composer.json and then run `composer install`.
+Add `"joomla/archive": "~4.0"` to the require block in your composer.json and then run `composer install`.
 
 ```json
 {
 	"require": {
-		"joomla/archive": "~3.0"
+		"joomla/archive": "~4.0"
 	}
 }
 ```
@@ -74,11 +74,11 @@ Add `"joomla/archive": "~3.0"` to the require block in your composer.json and th
 Alternatively, you can simply run the following from the command line:
 
 ```sh
-composer require joomla/archive "~3.0"
+composer require joomla/archive "~4.0"
 ```
 
 If you want to include the test sources, use
 
 ```sh
-composer require --prefer-source joomla/archive "~3.0"
+composer require --prefer-source joomla/archive "~4.0"
 ```

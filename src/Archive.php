@@ -7,6 +7,8 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
+declare(strict_types=1);
+
 namespace Joomla\Archive;
 
 use Joomla\Archive\Exception\UnknownArchiveException;
@@ -45,14 +47,8 @@ class Archive
      * @since   1.0
      * @throws  \InvalidArgumentException
      */
-    public function __construct($options = [])
+    public function __construct(array|\ArrayAccess $options = [])
     {
-        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
-            throw new \InvalidArgumentException(
-                'The options param must be an array or implement the ArrayAccess interface.'
-            );
-        }
-
         // Make sure we have a tmp directory.
         isset($options['tmp_path']) || $options['tmp_path'] = realpath(sys_get_temp_dir());
 
@@ -159,7 +155,7 @@ class Archive
     public function setAdapter($type, $class, $override = true)
     {
         if ($override || !isset($this->adapters[$type])) {
-            if (!\is_object($class) && !class_exists($class)) {
+            if (!class_exists($class)) {
                 throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not found.', $type, $class));
             }
 
