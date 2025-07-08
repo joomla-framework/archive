@@ -299,7 +299,7 @@ class Zip implements ExtractableInterface
             }
 
             // Move file from temporary location to destination
-            if (rename($source, $target) === false) {
+            if (!rename($source, $target)) {
                 throw new \RuntimeException('Unable to move temporary file to destination ' . $target);
             }
         }
