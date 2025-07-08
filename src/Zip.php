@@ -262,51 +262,44 @@ class Zip implements ExtractableInterface
      */
     protected function extractNative($archive, $destination)
     {
-        $zip = new \ZipArchive;
+        $zip = new \ZipArchive();
 
-        if ($zip->open($archive) !== true)
-        {
+        if ($zip->open($archive) !== true) {
             throw new \RuntimeException('Unable to open archive');
         }
 
         // Make sure the destination folder exists
-        if (!Folder::create($destination))
-        {
+        if (!Folder::create($destination)) {
             throw new \RuntimeException('Unable to create destination folder ' . \dirname($destination));
         }
 
-        $tempDir = sys_get_temp_dir().'/'.uniqid('extract_', true);
+        $tempDir = sys_get_temp_dir() . '/' . uniqid('extract_', true);
 
         // don't try to extract based on number of files since this causes ulimit issues
         // instead extract everything to a temporary folder then move to the final location
         $result = $zip->extractTo($tempDir);
 
-        if (!$result)
-        {
+        if (!$result) {
             throw new \RuntimeException('Unable to extract ZIP contents.');
         }
 
-        for ($i=0; $i < $zip->numFiles; $i++)
-        {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
             $file = $zip->getNameIndex($i);
 
-            if (substr($file, -1) === '/')
-            {
+            if (substr($file, -1) === '/') {
                 continue;
             }
 
-            $source = $tempDir.'/'.$file;
-            $target = $destination.'/'.$file;
+            $source = $tempDir . '/' . $file;
+            $target = $destination . '/' . $file;
 
             // Ensure parent dir exists
-            if (!Folder::create(dirname($target)))
-            {
+            if (!Folder::create(dirname($target))) {
                 throw new \RuntimeException('Unable to create directory ' . dirname($target));
             }
 
             // Move file from temporary location to destination
-            if (rename($source, $target) === false)
-            {
+            if (rename($source, $target) === false) {
                 throw new \RuntimeException('Unable to move temporary file to destination ' . $target);
             }
         }
