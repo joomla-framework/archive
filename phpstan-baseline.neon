@@ -1,0 +1,41 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Call to function is_object\\(\\) with string will always evaluate to false\\.$#"
+			count: 1
+			path: src/Archive.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: src/Archive.php
+
+		-
+			message: "#^Property Joomla\\\\Archive\\\\Bzip2\\:\\:\\$data \\(string\\) does not accept null\\.$#"
+			count: 1
+			path: src/Bzip2.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: src/Bzip2.php
+
+		-
+			message: "#^Property Joomla\\\\Archive\\\\Gzip\\:\\:\\$data \\(string\\) does not accept null\\.$#"
+			count: 1
+			path: src/Gzip.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: src/Gzip.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: src/Tar.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: src/Zip.php
