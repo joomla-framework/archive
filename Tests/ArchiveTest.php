@@ -11,6 +11,7 @@ use Joomla\Archive\Archive;
 use Joomla\Archive\Exception\UnknownArchiveException;
 use Joomla\Archive\Exception\UnsupportedArchiveException;
 use Joomla\Archive\Zip as ArchiveZip;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test class for Joomla\Archive\Archive.
@@ -37,33 +38,37 @@ class ArchiveTest extends ArchiveTestCase
     /**
      * Data provider for retrieving adapters.
      *
-     * @return  \Generator
+     * @return  array
      */
-    public static function dataAdapters(): \Generator
+    public static function dataAdaptersProvider(): array
     {
         // Adapter Type, Expected Exception
-        yield 'Zip Adapter' => ['Zip', false];
-        yield 'Tar Adapter' => ['Tar', false];
-        yield 'Gzip Adapter' => ['Gzip', false];
-        yield 'Bzip2 Adapter' => ['Bzip2', false];
-        yield 'Unknown Adapter' => ['Unknown', true];
+        return [
+            'Zip Adapter' => ['Zip', false],
+            'Tar Adapter' => ['Tar', false],
+            'Gzip Adapter' => ['Gzip', false],
+            'Bzip2 Adapter' => ['Bzip2', false],
+            'Unknown Adapter' => ['Unknown', true],
+        ];
     }
 
     /**
      * Data provider for extracting archives.
      *
-     * @return  \Generator
+     * @return  array
      */
-    public static function dataExtract(): \Generator
+    public static function dataExtractProvider(): array
     {
         // Filename, Adapter Type, Extracted Filename, Output is a File
-        yield 'Zip adapter with capitalised file extension' => ['Caps-Logo.ZIP', 'Zip', 'logo-zip.png'];
-        yield 'Zip adapter' => ['logo.zip', 'Zip', 'logo-zip.png'];
-        yield 'Tar adapter' => ['logo.tar', 'Zip', 'logo-tar.png'];
-        yield 'Gzip adapter with .gz file type' => ['logo.png.gz', 'Gzip', 'logo.png'];
-        yield 'Bzip2 adapter with .bz2 file type' => ['logo.png.bz2', 'Bzip2', 'logo.png'];
-        yield 'Gzip adapter with .tar.gz file type' => ['logo.tar.gz', 'Gzip', 'logo-tar-gz.png'];
-        yield 'Bzip2 adapter with .tar.bz2 file type' => ['logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'];
+        return [
+            'Zip adapter with capitalised file extension' => ['Caps-Logo.ZIP', 'Zip', 'logo-zip.png'],
+            'Zip adapter' => ['logo.zip', 'Zip', 'logo-zip.png'],
+            'Tar adapter' => ['logo.tar', 'Zip', 'logo-tar.png'],
+            'Gzip adapter with .gz file type' => ['logo.png.gz', 'Gzip', 'logo.png'],
+            'Bzip2 adapter with .bz2 file type' => ['logo.png.bz2', 'Bzip2', 'logo.png'],
+            'Gzip adapter with .tar.gz file type' => ['logo.tar.gz', 'Gzip', 'logo-tar-gz.png'],
+            'Bzip2 adapter with .tar.bz2 file type' => ['logo.tar.bz2', 'Bzip2', 'logo-tar-bz2.png'],
+        ];
     }
 
     /**
@@ -92,8 +97,8 @@ class ArchiveTest extends ArchiveTestCase
      * @uses          Joomla\Archive\Gzip
      * @uses          Joomla\Archive\Tar
      * @uses          Joomla\Archive\Zip
-     * @dataProvider  dataExtract
      */
+    #[DataProvider('dataExtractProvider')]
     public function testExtract($filename, $adapterType, $extractedFilename)
     {
         if (!is_writable($this->outputPath) || !is_writable($this->fixture->options['tmp_path'])) {
@@ -141,8 +146,8 @@ class ArchiveTest extends ArchiveTestCase
      * @uses          Joomla\Archive\Gzip
      * @uses          Joomla\Archive\Tar
      * @uses          Joomla\Archive\Zip
-     * @dataProvider  dataAdapters
      */
+    #[DataProvider('dataAdaptersProvider')]
     public function testGetAdapter($adapterType, $expectedException)
     {
         if ($expectedException) {
@@ -164,7 +169,7 @@ class ArchiveTest extends ArchiveTestCase
     {
         $this->assertSame(
             $this->fixture,
-            $this->fixture->setAdapter('zip', new ArchiveZip()),
+            $this->fixture->setAdapter('zip', '\\Joomla\\Archive\\Zip'),
             'The setAdapter method should return the current object.'
         );
     }

@@ -7,6 +7,8 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
+declare(strict_types=1);
+
 namespace Joomla\Archive;
 
 use Joomla\Filesystem\File;
@@ -38,19 +40,12 @@ class Bzip2 implements ExtractableInterface
     /**
      * Create a new Archive object.
      *
-     * @param   array|\ArrayAccess  $options  An array of options
+     * @param \ArrayAccess|array $options An array of options
      *
      * @since   1.0
-     * @throws  \InvalidArgumentException
      */
-    public function __construct($options = [])
+    public function __construct(\ArrayAccess|array $options = [])
     {
-        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
-            throw new \InvalidArgumentException(
-                'The options param must be an array or implement the ArrayAccess interface.'
-            );
-        }
-
         $this->options = $options;
     }
 
@@ -67,7 +62,7 @@ class Bzip2 implements ExtractableInterface
      */
     public function extract($archive, $destination)
     {
-        $this->data = null;
+        $this->data = '';
 
         if (!isset($this->options['use_streams']) || $this->options['use_streams'] == false) {
             // Old style: read the whole file and then parse it
