@@ -24,7 +24,7 @@ class Bzip2 implements ExtractableInterface
     /**
      * Bzip2 file data buffer
      *
-     * @var    string
+     * @var    ?string
      * @since  1.0
      */
     private $data;

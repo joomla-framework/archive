@@ -83,7 +83,7 @@ class Zip implements ExtractableInterface
     /**
      * ZIP file data buffer
      *
-     * @var    string
+     * @var    ?string
      * @since  1.0
      */
     private $data;

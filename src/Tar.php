@@ -49,7 +49,7 @@ class Tar implements ExtractableInterface
     /**
      * Tar file data buffer
      *
-     * @var    string
+     * @var    ?string
      * @since  1.0
      */
     private $data;
