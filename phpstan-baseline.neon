@@ -1,0 +1,73 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_object\(\) with class\-string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: src/Archive.php
+
+		-
+			message: '#^Call to function is_object\(\) with string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: src/Archive.php
+
+		-
+			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Archive.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 2
+			path: src/Archive.php
+
+		-
+			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Bzip2.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: src/Bzip2.php
+
+		-
+			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Gzip.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: src/Gzip.php
+
+		-
+			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Tar.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: src/Tar.php
+
+		-
+			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: src/Zip.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: src/Zip.php
