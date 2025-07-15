@@ -7,8 +7,6 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-declare(strict_types=1);
-
 namespace Joomla\Archive;
 
 use Joomla\Filesystem\File;
@@ -76,9 +74,16 @@ class Tar implements ExtractableInterface
      * @param   array|\ArrayAccess  $options  An array of options or an object that implements \ArrayAccess
      *
      * @since   1.0
+     * @throws  \InvalidArgumentException
      */
-    public function __construct(array|\ArrayAccess $options = [])
+    public function __construct($options = [])
     {
+        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
+            throw new \InvalidArgumentException(
+                'The options param must be an array or implement the ArrayAccess interface.'
+            );
+        }
+
         $this->options = $options;
     }
 
