@@ -7,8 +7,6 @@
  * @license    GNU General Public License version 2 or later; see LICENSE
  */
 
-declare(strict_types=1);
-
 namespace Joomla\Archive;
 
 use Joomla\Filesystem\File;
@@ -43,9 +41,16 @@ class Bzip2 implements ExtractableInterface
      * @param \ArrayAccess|array $options An array of options
      *
      * @since   1.0
+     * @throws  \InvalidArgumentException
      */
-    public function __construct(\ArrayAccess|array $options = [])
+    public function __construct($options = [])
     {
+        if (!\is_array($options) && !($options instanceof \ArrayAccess)) {
+            throw new \InvalidArgumentException(
+                'The options param must be an array or implement the ArrayAccess interface.'
+            );
+        }
+
         $this->options = $options;
     }
 
