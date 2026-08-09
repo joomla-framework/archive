@@ -10,12 +10,23 @@ namespace Joomla\Archive\Tests;
 use Joomla\Archive\Archive;
 use Joomla\Archive\Exception\UnknownArchiveException;
 use Joomla\Archive\Exception\UnsupportedArchiveException;
-use Joomla\Archive\Zip as ArchiveZip;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestDox;
+use PHPUnit\Framework\Attributes\UsesClass;
+use Joomla\Archive\Bzip2;
+use Joomla\Archive\Gzip;
+use Joomla\Archive\Tar;
+use Joomla\Archive\Zip;
 
 /**
  * Test class for Joomla\Archive\Archive.
  */
+#[CoversClass(Archive::class)]
+#[UsesClass(Bzip2::class)]
+#[UsesClass(Gzip::class)]
+#[UsesClass(Tar::class)]
+#[UsesClass(Zip::class)]
 class ArchiveTest extends ArchiveTestCase
 {
     /**
@@ -71,11 +82,7 @@ class ArchiveTest extends ArchiveTestCase
         ];
     }
 
-    /**
-     * @testdox  The Archive object is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Archive
-     */
+    #[TestDox('The Archive object is instantiated correctly')]
     public function test__construct()
     {
         $options = ['tmp_path' => __DIR__];
@@ -86,19 +93,12 @@ class ArchiveTest extends ArchiveTestCase
     }
 
     /**
-     * @testdox  Archives can be extracted
-     *
      * @param   string   $filename           Name of the file to extract
      * @param   string   $adapterType        Type of adaptar that will be used
      * @param   string   $extractedFilename  Name of the file to extracted file
-     *
-     * @covers        Joomla\Archive\Archive
-     * @uses          Joomla\Archive\Bzip2
-     * @uses          Joomla\Archive\Gzip
-     * @uses          Joomla\Archive\Tar
-     * @uses          Joomla\Archive\Zip
      */
     #[DataProvider('dataExtractProvider')]
+    #[TestDox('Archives can be extracted')]
     public function testExtract($filename, $adapterType, $extractedFilename)
     {
         if (!is_writable($this->outputPath) || !is_writable($this->fixture->options['tmp_path'])) {
@@ -120,11 +120,7 @@ class ArchiveTest extends ArchiveTestCase
         @unlink($this->outputPath . "/$extractedFilename");
     }
 
-    /**
-     * @testdox  Extracting an unknown archive type throws an Exception
-     *
-     * @covers   Joomla\Archive\Archive
-     */
+    #[TestDox('Extracting an unknown archive type throws an Exception')]
     public function testExtractUnknown()
     {
         $this->expectException(UnknownArchiveException::class);
@@ -136,18 +132,11 @@ class ArchiveTest extends ArchiveTestCase
     }
 
     /**
-     * @testdox  Adapters can be retrieved
-     *
      * @param   string   $adapterType        Type of adapter to load
      * @param   boolean  $expectedException  Flag if an Exception is expected
-     *
-     * @covers        Joomla\Archive\Archive
-     * @uses          Joomla\Archive\Bzip2
-     * @uses          Joomla\Archive\Gzip
-     * @uses          Joomla\Archive\Tar
-     * @uses          Joomla\Archive\Zip
      */
     #[DataProvider('dataAdaptersProvider')]
+    #[TestDox('Adapters can be retrieved')]
     public function testGetAdapter($adapterType, $expectedException)
     {
         if ($expectedException) {
@@ -159,12 +148,7 @@ class ArchiveTest extends ArchiveTestCase
         $this->assertInstanceOf('Joomla\\Archive\\' . $adapterType, $adapter);
     }
 
-    /**
-     * @testdox  Adapters can be set to the Archive
-     *
-     * @covers   Joomla\Archive\Archive
-     * @uses     Joomla\Archive\Zip
-     */
+    #[TestDox('Adapters can be set to the Archive')]
     public function testSetAdapter()
     {
         $this->assertSame(
@@ -174,11 +158,7 @@ class ArchiveTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  Setting an unknown adapter throws an Exception
-     *
-     * @covers   Joomla\Archive\Archive
-     */
+    #[TestDox('Setting an unknown adapter throws an Exception')]
     public function testSetAdapterUnknownException()
     {
         $this->expectException(UnsupportedArchiveException::class);
