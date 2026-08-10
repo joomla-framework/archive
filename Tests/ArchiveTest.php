@@ -8,16 +8,16 @@
 namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Archive;
+use Joomla\Archive\Bzip2;
 use Joomla\Archive\Exception\UnknownArchiveException;
 use Joomla\Archive\Exception\UnsupportedArchiveException;
+use Joomla\Archive\Gzip;
+use Joomla\Archive\Tar;
+use Joomla\Archive\Zip;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\Attributes\UsesClass;
-use Joomla\Archive\Bzip2;
-use Joomla\Archive\Gzip;
-use Joomla\Archive\Tar;
-use Joomla\Archive\Zip;
 
 /**
  * Test class for Joomla\Archive\Archive.
