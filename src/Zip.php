@@ -278,30 +278,39 @@ class Zip implements ExtractableInterface
             throw new \RuntimeException('Unable to create destination folder ' . \dirname($destination));
         }
 
-        // Read files in the archive
-        for ($index = 0; $index < $zip->numFiles; $index++) {
-            $file = $zip->getNameIndex($index);
+        $tempDir = sys_get_temp_dir() . '/' . uniqid('extract_', true);
+
+        // don't try to extract based on number of files since this causes ulimit issues
+        // instead extract everything to a temporary folder then move to the final location
+        $result = $zip->extractTo($tempDir);
+
+        if (!$result) {
+            throw new \RuntimeException('Unable to extract ZIP contents.');
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $file = $zip->getNameIndex($i);
 
             if (substr($file, -1) === '/') {
                 continue;
             }
 
-            $buffer = $zip->getFromIndex($index);
+            $source = $tempDir . '/' . $file;
+            $target = $destination . '/' . $file;
 
-            if ($buffer === false) {
-                throw new \RuntimeException('Unable to read ZIP entry');
+            // Ensure parent dir exists
+            if (!Folder::create(dirname($target))) {
+                throw new \RuntimeException('Unable to create directory ' . dirname($target));
             }
 
-            if (!$this->isBelow($destination, $destination . '/' . $file)) {
-                throw new \RuntimeException('Unable to write outside of destination path', 100);
-            }
-
-            if (File::write($destination . '/' . $file, $buffer) === false) {
-                throw new \RuntimeException('Unable to write ZIP entry to file ' . $destination . '/' . $file);
+            // Move file from temporary location to destination
+            if (!rename($source, $target)) {
+                throw new \RuntimeException('Unable to move temporary file to destination ' . $target);
             }
         }
 
-        $zip->close();
+        // Clean up temp folder
+        Folder::delete($tempDir);
 
         return true;
     }
