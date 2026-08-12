@@ -9,17 +9,17 @@ namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Zip as ArchiveZip;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Zip.
  */
+#[CoversClass(ArchiveZip::class)]
 class ZipTest extends ArchiveTestCase
 {
-    /**
-     * @testdox  The zip adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('The zip adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveZip();
@@ -32,11 +32,7 @@ class ZipTest extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be created
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('An archive can be created')]
     public function testCreate()
     {
         $object = new ArchiveZip();
@@ -61,11 +57,7 @@ class ZipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo.zip');
     }
 
-    /**
-     * @testdox  An archive can be extracted natively
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('An archive can be extracted natively')]
     public function testExtractNative()
     {
         if (!ArchiveZip::hasNativeSupport()) {
@@ -90,11 +82,7 @@ class ZipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-zip.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted with the custom interface
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('An archive can be extracted with the custom interface')]
     public function testExtractCustom()
     {
         if (!ArchiveZip::isSupported()) {
@@ -119,11 +107,7 @@ class ZipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-zip.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveZip::isSupported()) {
@@ -148,11 +132,7 @@ class ZipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-zip.png');
     }
 
-    /**
-     * @testdox  If the archive cannot be found an Exception is thrown
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('If the archive cannot be found an Exception is thrown')]
     public function testExtractException()
     {
         $this->expectException(\RuntimeException::class);
@@ -165,11 +145,7 @@ class ZipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The adapter detects if the environment has native support
-     *
-     * @covers   Joomla\Archive\Zip::hasNativeSupport
-     */
+    #[TestDox('The adapter detects if the environment has native support')]
     public function testHasNativeSupport()
     {
         $this->assertEquals(
@@ -178,12 +154,8 @@ class ZipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Zip
-     * @depends  testHasNativeSupport
-     */
+    #[Depends('testHasNativeSupport')]
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertEquals(
@@ -192,11 +164,7 @@ class ZipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The adapter correctly checks ZIP data
-     *
-     * @covers   Joomla\Archive\Zip
-     */
+    #[TestDox('The adapter correctly checks ZIP data')]
     public function testCheckZipData()
     {
         $object = new ArchiveZip();
