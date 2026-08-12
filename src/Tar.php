@@ -88,15 +88,16 @@ class Tar implements ExtractableInterface
     }
 
     /**
-     * Extract a ZIP compressed file to a given path
+     * Extract a Tar archive to a given path
      *
-     * @param   string  $archive      Path to ZIP archive to extract
+     * @param   string  $archive      Path to Tar archive to extract
      * @param   string  $destination  Path to extract archive into
      *
      * @return  boolean True if successful
      *
      * @since   1.0
-     * @throws  \RuntimeException
+     * @throws  \RuntimeException if the archive cannot be read or an entry cannot be written
+     * @throws  \OutOfBoundsException if an entry would be written outside the destination
      */
     public function extract($archive, $destination)
     {
@@ -135,7 +136,7 @@ class Tar implements ExtractableInterface
     }
 
     /**
-     * Tests whether this adapter can unpack files on this computer.
+     * Tests whether this adapter can pack and unpack files on this computer.
      *
      * @return  boolean  True if supported
      *
@@ -174,7 +175,7 @@ class Tar implements ExtractableInterface
 
         while ($position < \strlen($data)) {
             $info = @unpack(
-                'Z100filename/Z8mode/Z8uid/Z8gid/Z12size/Z12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor',
+                'Z100filename/Z8mode/Z8uid/Z8gid/Z12size/Z12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor/Z155prefix',
                 $data,
                 $position
             );
@@ -183,13 +184,25 @@ class Tar implements ExtractableInterface
              * This variable has been set in the previous loop, meaning that the filename was present in the previous block
              * to allow more than 100 characters - see below
              */
+            $usedLongLink = false;
+
             if (isset($longlinkfilename)) {
                 $info['filename'] = $longlinkfilename;
                 unset($longlinkfilename);
+                $usedLongLink = true;
             }
 
             if (!$info) {
                 throw new \RuntimeException('Unable to decompress data');
+            }
+
+            /*
+             * USTAR stores a path longer than the 100 character name field split across a separate
+             * 155 character prefix field. Only the POSIX format uses it - the old GNU format writes
+             * "ustar " into the magic and puts unrelated data where the prefix would be.
+             */
+            if (!$usedLongLink && $info['magic'] === 'ustar' && $info['prefix'] !== '') {
+                $info['filename'] = $info['prefix'] . '/' . $info['filename'];
             }
 
             $position += 512;
