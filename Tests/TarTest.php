@@ -9,17 +9,16 @@ namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Tar as ArchiveTar;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Tar.
  */
+#[CoversClass(ArchiveTar::class)]
 class TarTest extends ArchiveTestCase
 {
-    /**
-     * @testdox  The tar adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('The tar adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveTar();
@@ -32,11 +31,7 @@ class TarTest extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveTar::isSupported()) {
@@ -53,11 +48,7 @@ class TarTest extends ArchiveTestCase
         }
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertTrue(ArchiveTar::isSupported());

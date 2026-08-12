@@ -9,17 +9,16 @@ namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Bzip2 as ArchiveBzip2;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Bzip2.
  */
+#[CoversClass(ArchiveBzip2::class)]
 class Bzip2Test extends ArchiveTestCase
 {
-    /**
-     * @testdox  The bzip2 adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('The bzip2 adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveBzip2();
@@ -32,11 +31,7 @@ class Bzip2Test extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveBzip2::isSupported()) {
@@ -59,11 +54,7 @@ class Bzip2Test extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-bz2.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted via streams
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
         $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
@@ -87,11 +78,7 @@ class Bzip2Test extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-bz2.png');
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertSame(
