@@ -54,6 +54,36 @@ class TarTest extends ArchiveTestCase
     }
 
     /**
+     * @testdox  An archive written by GNU tar with a long path is extracted to the full path
+     *
+     * @covers   Joomla\Archive\Tar
+     */
+    public function testExtractRestoresPathsStoredInThePrefixField()
+    {
+        $object      = new ArchiveTar();
+        $destination = $this->outputPath . '/long-path';
+
+        // Written by GNU tar in ustar format: the leading directories live in the prefix field
+        $object->extract($this->inputPath . '/long-path.tar', $destination);
+
+        $expected = $destination
+            . '/a-directory-with-a-fairly-long-name/and-another-nested-level-here'
+            . '/and-one-more-to-push-past-100/payload.txt';
+
+        $this->assertFileExists(
+            $expected,
+            'The prefix field carries the directories, so ignoring it drops them from the path'
+        );
+
+        $this->assertFileDoesNotExist(
+            $destination . '/payload.txt',
+            'The entry must not land flat in the destination'
+        );
+
+        $this->cleanUp([], [$destination]);
+    }
+
+    /**
      * @testdox  The adapter detects if the environment is supported
      *
      * @covers   Joomla\Archive\Tar
