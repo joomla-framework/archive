@@ -30,6 +30,20 @@ $archive = new Joomla\Archive\Archive($options)
 $archive->extract(__DIR__ . '/archive.zip', __DIR__ . '/destination');
 ```
 
+Every adapter can write archives as well, through `create()`:
+
+```php
+$tar = new Joomla\Archive\Tar;
+
+$tar->create(__DIR__ . '/archive.tar', array(
+	array('name' => 'readme.txt', 'data' => 'Hello'),
+));
+```
+
+Gzip and bzip2 compress a single stream, so several files are packed into a tar first when the
+archive is named `.tar.gz`, `.tgz`, `.tar.bz2` or `.tbz2`. See [the documentation](docs/overview.md#creating-archives)
+for the details.
+
 ## Overriding Adapters
 
 If you have a custom adapter you would like to use for extracting, this package allows you to override the defaults. Just implement `ExtractableInterface` when creating your adapter, and then use the `setAdapter` method to override.

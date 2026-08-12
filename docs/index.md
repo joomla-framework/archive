@@ -1,11 +1,11 @@
 # Joomla Archive Package — Documentation
 
-Extracts ZIP, TAR, GZIP and BZIP2 archives through a common interface, picking the adapter from the
-file extension.
+Reads and writes ZIP, TAR, GZIP and BZIP2 archives through a common interface, picking the adapter
+from the file extension.
 
 ## Guide
 
-* [Overview](overview.md) — extracting, the adapters, and what to check before extracting untrusted archives
+* [Overview](overview.md) — extracting, creating, the adapters, and what to check before extracting untrusted archives
 
 ## Upgrading
 
