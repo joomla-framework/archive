@@ -79,6 +79,39 @@ class Zip implements ExtractableInterface
     private const FILE_HEADER = "\x50\x4b\x03\x04";
 
     /**
+     * General purpose bit flag saying the entry name is UTF-8 rather than CP437.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const FLAG_UTF8 = 0x0800;
+
+    /**
+     * "Version made by": host system 3 (Unix) in the high byte, format version 2.0 in the low one.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const MADE_BY_UNIX = 0x0314;
+
+    /**
+     * Largest entry the 32 bit size fields can express, in bytes. ZIP64 lifts this; we do not
+     * implement it.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const MAX_ENTRY_SIZE = 4294967295;
+
+    /**
+     * Most entries the 16 bit counters of the end of central directory record can express.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const MAX_ENTRIES = 65535;
+
+    /**
      * ZIP file data buffer
      *
      * @var    ?string
@@ -130,15 +163,17 @@ class Zip implements ExtractableInterface
      * @return  boolean  True if successful.
      *
      * @since   1.0
-     * @todo    Finish Implementation
+     * @throws  \InvalidArgumentException if an entry is malformed or too large for the format
+     * @throws  \RuntimeException if the archive cannot be written
      */
     public function create($archive, $files)
     {
         $contents = [];
         $ctrldir  = [];
+        $offset   = 0;
 
         foreach ($files as $file) {
-            $this->addToZipFile($file, $contents, $ctrldir);
+            $offset = $this->addToZipFile($file, $contents, $ctrldir, $offset);
         }
 
         return $this->createZipFile($contents, $ctrldir, $archive);
@@ -476,19 +511,32 @@ class Zip implements ExtractableInterface
     /**
      * Adds a "file" to the ZIP archive.
      *
-     * @param   array  $file      File data array to add
-     * @param   array  $contents  An array of existing zipped files.
-     * @param   array  $ctrldir   An array of central directory information.
+     * @param   array    $file      File data array to add
+     * @param   array    $contents  An array of existing zipped files.
+     * @param   array    $ctrldir   An array of central directory information.
+     * @param   integer  $offset    Byte offset this entry starts at inside the archive.
      *
-     * @return  void
+     * @return  integer  The offset the next entry starts at.
      *
      * @since   1.0
-     * @todo    Review and finish implementation
+     * @throws  \InvalidArgumentException if the archive holds more entries than the format can count
+     * @throws  \RuntimeException if the archive cannot be written
      */
-    private function addToZipFile(array &$file, array &$contents, array &$ctrldir): void
+    private function addToZipFile(array $file, array &$contents, array &$ctrldir, int $offset): int
     {
-        $data = &$file['data'];
-        $name = str_replace('\\', '/', $file['name']);
+        if (!isset($file['name']) || (string) $file['name'] === '') {
+            throw new \InvalidArgumentException('Each entry must have a non-empty "name".');
+        }
+
+        $name = str_replace('\\', '/', (string) $file['name']);
+
+        // A trailing slash marks a directory, which carries no data of its own
+        $isDirectory = substr($name, -1) === '/';
+        $data        = $isDirectory ? '' : (string) ($file['data'] ?? '');
+
+        // Permissions of the extracted entry, stored in the external attributes further down
+        $mode = ((int) ($file['mode'] ?? ($isDirectory ? 0755 : 0644)) & 0777)
+            | ($isDirectory ? 040000 : 0100000);
 
         // See if time/date information has been provided.
         $ftime = null;
@@ -497,10 +545,44 @@ class Zip implements ExtractableInterface
             $ftime = $file['time'];
         }
 
-        // Get the hex time.
-        $dtime    = dechex($this->unix2DosTime($ftime));
-        $hexdtime = \chr(hexdec($dtime[6] . $dtime[7])) . \chr(hexdec($dtime[4] . $dtime[5])) . \chr(hexdec($dtime[2] . $dtime[3]))
-            . \chr(hexdec($dtime[0] . $dtime[1]));
+        /*
+         * The DOS timestamp is a 32 bit value stored little endian. Formatting it as hex and
+         * slicing out byte pairs, as this used to do, reads past the end of the string whenever the
+         * value needs fewer than eight hex digits - which is every timestamp before 1994, and every
+         * timestamp clamped to the 1980 epoch.
+         */
+        $hexdtime = pack('V', $this->unix2DosTime($ftime));
+
+        /*
+         * Bit 11 of the general purpose bit flag declares the entry name to be UTF-8. Without it a
+         * reader is entitled to interpret the name as CP437, which mangles anything outside ASCII.
+         * Only set it when it is both needed and true, so ASCII archives stay byte for byte what
+         * they were.
+         */
+        $flag = 0x0000;
+
+        if (preg_match('/[\x80-\xFF]/', $name) === 1 && preg_match('//u', $name) === 1) {
+            $flag = self::FLAG_UTF8;
+        }
+
+        // "Local file header" segment.
+        $uncLen = \strlen($data);
+        $crc    = crc32($data);
+        $zdata  = gzcompress($data);
+        $zdata  = substr(substr($zdata, 0, -4), 2);
+        $cLen   = \strlen($zdata);
+
+        if ($uncLen > self::MAX_ENTRY_SIZE || $cLen > self::MAX_ENTRY_SIZE) {
+            throw new \InvalidArgumentException(
+                sprintf('Entry "%s" exceeds the 4 GiB a ZIP archive without ZIP64 can store.', $name)
+            );
+        }
+
+        if ($offset > self::MAX_ENTRY_SIZE) {
+            throw new \InvalidArgumentException(
+                sprintf('Adding "%s" would push the archive past the 4 GiB a ZIP archive without ZIP64 can address.', $name)
+            );
+        }
 
         // Begin creating the ZIP data.
         $fr = self::FILE_HEADER;
@@ -509,20 +591,13 @@ class Zip implements ExtractableInterface
         $fr .= "\x14\x00";
 
         // General purpose bit flag.
-        $fr .= "\x00\x00";
+        $fr .= pack('v', $flag);
 
         // Compression method.
         $fr .= "\x08\x00";
 
         // Last modification time/date.
         $fr .= $hexdtime;
-
-        // "Local file header" segment.
-        $uncLen = \strlen($data);
-        $crc    = crc32($data);
-        $zdata  = gzcompress($data);
-        $zdata  = substr(substr($zdata, 0, -4), 2);
-        $cLen   = \strlen($zdata);
 
         // CRC 32 information.
         $fr .= pack('V', $crc);
@@ -545,21 +620,29 @@ class Zip implements ExtractableInterface
         // "File data" segment.
         $fr .= $zdata;
 
-        // Add this entry to array.
-        $oldOffset  = \strlen(implode('', $contents));
-        $contents[] = &$fr;
+        /*
+         * Add this entry to the array. The caller keeps the running offset: rebuilding the archive
+         * so far with implode() on every entry, as this used to do, makes creating an archive cost
+         * time proportional to the square of its size.
+         */
+        $contents[] = $fr;
 
         // Add to central directory record.
         $cdrec = self::CTRL_DIR_HEADER;
 
-        // Version made by.
-        $cdrec .= "\x00\x00";
+        /*
+         * Version made by. The high byte is the host system, and it has to say Unix rather than
+         * MS-DOS: a reader that sees MS-DOS translates the entry name from CP437, which corrupts
+         * the UTF-8 the flag above just promised. Declaring Unix also means the high word of the
+         * external attributes below is read as a mode, so the two go together.
+         */
+        $cdrec .= pack('v', self::MADE_BY_UNIX);
 
         // Version needed to extract
         $cdrec .= "\x14\x00";
 
-        // General purpose bit flag
-        $cdrec .= "\x00\x00";
+        // General purpose bit flag, which has to match the local header
+        $cdrec .= pack('v', $flag);
 
         // Compression method
         $cdrec .= "\x08\x00";
@@ -591,17 +674,23 @@ class Zip implements ExtractableInterface
         // Internal file attributes.
         $cdrec .= pack('v', 0);
 
-        // External file attributes -'archive' bit set.
-        $cdrec .= pack('V', 32);
+        /*
+         * External file attributes. With a Unix host the high word carries the mode, which is what
+         * decides the permissions of an extracted file; the low byte keeps the DOS attribute bits
+         * so that readers which only understand those still recognise a directory.
+         */
+        $cdrec .= pack('V', ($mode << 16) | ($isDirectory ? 0x10 : 0x20));
 
         // Relative offset of local header.
-        $cdrec .= pack('V', $oldOffset);
+        $cdrec .= pack('V', $offset);
 
         // File name.
         $cdrec .= $name;
 
         // Save to central directory array.
-        $ctrldir[] = &$cdrec;
+        $ctrldir[] = $cdrec;
+
+        return $offset + \strlen($fr);
     }
 
     /**
@@ -616,10 +705,20 @@ class Zip implements ExtractableInterface
      * @return  boolean  True if successful
      *
      * @since   1.0
-     * @todo    Review and finish implementation
+     * @throws  \InvalidArgumentException if the entry is malformed or too large for the format
      */
     private function createZipFile(array $contents, array $ctrlDir, string $path): bool
     {
+        if (\count($ctrlDir) > self::MAX_ENTRIES) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'A ZIP archive without ZIP64 holds at most %d entries, %d given.',
+                    self::MAX_ENTRIES,
+                    \count($ctrlDir)
+                )
+            );
+        }
+
         $data = implode('', $contents);
         $dir  = implode('', $ctrlDir);
 
@@ -638,7 +737,11 @@ class Zip implements ExtractableInterface
         pack('V', \strlen($data)) .
         "\x00\x00";
 
-        return File::write($path, $buffer);
+        if (!File::write($path, $buffer)) {
+            throw new \RuntimeException('Unable to write archive to file ' . $path);
+        }
+
+        return true;
     }
 
     /**
