@@ -57,8 +57,6 @@ class Bzip2Test extends ArchiveTestCase
     #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
-        $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
-
         if (!ArchiveBzip2::isSupported()) {
             $this->markTestSkipped('Bzip2 files can not be extracted.');
         }
