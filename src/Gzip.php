@@ -23,8 +23,10 @@ use Joomla\Filesystem\Stream;
  *
  * @since  1.0
  */
-class Gzip implements ExtractableInterface
+class Gzip implements ExtractableInterface, CreatableInterface
 {
+    use TarWrappingTrait;
+
     /**
      * Gzip file flags.
      *
@@ -69,9 +71,92 @@ class Gzip implements ExtractableInterface
     }
 
     /**
+     * Create a Gzip compressed file from an array of file data.
+     *
+     * Gzip compresses a single stream and has no concept of entries. One entry is therefore
+     * compressed as it stands, unless the archive is named as a tarball - `backup.tar.gz` or
+     * `backup.tgz` - in which case it is packed into a tar first. Several entries always need that
+     * tar, so an archive name that does not ask for one is rejected rather than written.
+     *
+     * The name is what decides, using the test `Archive::extract()` applies when unpacking.
+     *
+     * Set the `gzip_level` option to pick a compression level between 0 and 9; the default, -1,
+     * leaves the choice to zlib.
+     *
+     * @param   string  $archive  Path to save the archive to.
+     * @param   array   $files    Array of file data to add to the archive. See `CreatableInterface`.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if there is nothing to compress, if several entries are given
+     *                                    for an archive not named as a tarball, or if the level is invalid
+     * @throws  \RuntimeException if the data cannot be compressed or written
+     */
+    public function create($archive, $files)
+    {
+        $level = $this->options['gzip_level'] ?? -1;
+
+        if (!\is_int($level) || $level < -1 || $level > 9) {
+            throw new \InvalidArgumentException(
+                'The "gzip_level" option must be an integer between 0 and 9, or -1 for the zlib default.'
+            );
+        }
+
+        $payload = $this->buildPayload($archive, $files);
+        $buffer  = gzencode($payload['data'], $level);
+
+        if ($buffer === false) {
+            throw new \RuntimeException('Unable to compress data');
+        }
+
+        if ($payload['name'] !== null) {
+            $buffer = $this->addOriginalName($buffer, $payload['name']);
+        }
+
+        if (!File::write($archive, $buffer)) {
+            throw new \RuntimeException('Unable to write archive to file ' . $archive);
+        }
+
+        return true;
+    }
+
+    /**
+     * Record the original file name in the gzip header.
+     *
+     * `gzencode()` does not store one, which leaves `gunzip` guessing the name from the archive
+     * instead. Writing the FNAME field is what every other gzip implementation does, and this
+     * package reads it back in `getFilePosition()`.
+     *
+     * @param   string  $buffer  The gzip data returned by `gzencode()`.
+     * @param   string  $name    The original file name.
+     *
+     * @return  string
+     *
+     * @since   __DEPLOY_VERSION__
+     */
+    private function addOriginalName(string $buffer, string $name): string
+    {
+        // The name is stored NUL terminated, so it cannot contain one itself
+        $name = str_replace("\0", '', $name);
+
+        /*
+         * Only splice into a header we recognise: the 10 bytes gzencode() writes, with no flags
+         * set. Anything else and the offset below would not be the end of the header.
+         */
+        if ($name === '' || \strlen($buffer) < 10 || $buffer[0] !== "\x1f" || $buffer[1] !== "\x8b" || $buffer[3] !== "\0") {
+            return $buffer;
+        }
+
+        $buffer[3] = \chr(self::FLAGS['FNAME']);
+
+        return substr($buffer, 0, 10) . $name . "\0" . substr($buffer, 10);
+    }
+
+    /**
      * Extract a Gzip compressed file to a given path
      *
-     * @param   string  $archive      Path to ZIP archive to extract
+     * @param   string  $archive      Path to Gzip archive to extract
      * @param   string  $destination  Path to extract archive to
      *
      * @return  boolean  True if successful
@@ -139,7 +224,7 @@ class Gzip implements ExtractableInterface
     }
 
     /**
-     * Tests whether this adapter can unpack files on this computer.
+     * Tests whether this adapter can pack and unpack files on this computer.
      *
      * @return  boolean  True if supported
      *
