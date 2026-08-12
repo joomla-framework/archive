@@ -17,8 +17,10 @@ use Joomla\Filesystem\Stream;
  *
  * @since  1.0
  */
-class Bzip2 implements ExtractableInterface
+class Bzip2 implements ExtractableInterface, CreatableInterface
 {
+    use TarWrappingTrait;
+
     /**
      * Bzip2 file data buffer
      *
@@ -38,7 +40,7 @@ class Bzip2 implements ExtractableInterface
     /**
      * Create a new Archive object.
      *
-     * @param \ArrayAccess|array $options An array of options
+     * @param   array|\ArrayAccess  $options  An array of options
      *
      * @since   1.0
      * @throws  \InvalidArgumentException
@@ -52,6 +54,52 @@ class Bzip2 implements ExtractableInterface
         }
 
         $this->options = $options;
+    }
+
+    /**
+     * Create a Bzip2 compressed file from an array of file data.
+     *
+     * Bzip2 compresses a single stream and has no concept of entries. One entry is therefore
+     * compressed as it stands, unless the archive is named as a tarball - `backup.tar.bz2` or
+     * `backup.tbz2` - in which case it is packed into a tar first. Several entries always need that
+     * tar, so an archive name that does not ask for one is rejected rather than written.
+     *
+     * Set the `bzip2_blocksize` option to pick a block size between 1 and 9, in units of 100 kB.
+     * The default is 4.
+     *
+     * @param   string  $archive  Path to save the archive to.
+     * @param   array   $files    Array of file data to add to the archive. See `CreatableInterface`.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if there is nothing to compress, if several entries are given
+     *                                    for an archive not named as a tarball, or if the block size is invalid
+     * @throws  \RuntimeException if the data cannot be compressed or written
+     */
+    public function create($archive, $files)
+    {
+        $blockSize = $this->options['bzip2_blocksize'] ?? 4;
+
+        if (!\is_int($blockSize) || $blockSize < 1 || $blockSize > 9) {
+            throw new \InvalidArgumentException(
+                'The "bzip2_blocksize" option must be an integer between 1 and 9.'
+            );
+        }
+
+        $payload = $this->buildPayload($archive, $files);
+        $buffer  = bzcompress($payload['data'], $blockSize);
+
+        // bzcompress() reports failure by returning an error number instead of a string
+        if (!\is_string($buffer)) {
+            throw new \RuntimeException(sprintf('Unable to compress data, bzip2 error %d', $buffer));
+        }
+
+        if (!File::write($archive, $buffer)) {
+            throw new \RuntimeException('Unable to write archive to file ' . $archive);
+        }
+
+        return true;
     }
 
     /**
@@ -126,7 +174,7 @@ class Bzip2 implements ExtractableInterface
     }
 
     /**
-     * Tests whether this adapter can unpack files on this computer.
+     * Tests whether this adapter can pack and unpack files on this computer.
      *
      * @return  boolean  True if supported
      *
