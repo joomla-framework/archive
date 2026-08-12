@@ -24,8 +24,24 @@ use Joomla\Filesystem\Path;
  *
  * @since  1.0
  */
-class Tar implements ExtractableInterface
+class Tar implements ExtractableInterface, CreatableInterface
 {
+    /**
+     * Length of a tar header block, and the multiple every entry is padded to.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const BLOCK_SIZE = 512;
+
+    /**
+     * Largest file size the 11 octal digits of the USTAR size field can express.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const MAX_ENTRY_SIZE = 8589934591;
+
     /**
      * Tar file types.
      *
@@ -85,6 +101,179 @@ class Tar implements ExtractableInterface
         }
 
         $this->options = $options;
+    }
+
+    /**
+     * Create a Tar archive from an array of file data.
+     *
+     * Each entry is an array with the following keys:
+     *
+     * <pre>
+     * 'name' --  Path of the entry inside the archive. Required. A trailing slash makes it a directory.
+     * 'data' --  Raw contents of the entry. Ignored for directories, defaults to an empty string.
+     * 'time' --  Modification time as a UNIX timestamp. Defaults to the current time.
+     * 'mode' --  Permissions as an integer. Defaults to 0644 for files and 0755 for directories.
+     * </pre>
+     *
+     * The archive is assembled in memory before it is written, so the whole of it has to fit into
+     * `memory_limit`. Individual entries are limited to 8 GiB by the tar format itself.
+     *
+     * @param   string  $archive  Path to save the archive to.
+     * @param   array   $files    Array of file data to add to the archive.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if an entry is malformed or cannot be represented in the tar format
+     * @throws  \RuntimeException if the archive cannot be written
+     */
+    public function create($archive, $files)
+    {
+        if (!File::write($archive, $this->createData($files))) {
+            throw new \RuntimeException('Unable to write archive to file ' . $archive);
+        }
+
+        return true;
+    }
+
+    /**
+     * Build a Tar archive from an array of file data and return it as a string.
+     *
+     * @param   array  $files  Array of file data to add to the archive. See `create()`.
+     *
+     * @return  string  The raw archive.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if an entry is malformed or cannot be represented in the tar format
+     */
+    public function createData(array $files): string
+    {
+        $data = '';
+
+        foreach ($files as $file) {
+            if (!\is_array($file) && !($file instanceof \ArrayAccess)) {
+                throw new \InvalidArgumentException(
+                    'Each entry must be an array or implement the ArrayAccess interface.'
+                );
+            }
+
+            if (!isset($file['name']) || (string) $file['name'] === '') {
+                throw new \InvalidArgumentException('Each entry must have a non-empty "name".');
+            }
+
+            $name        = str_replace('\\', '/', (string) $file['name']);
+            $isDirectory = substr($name, -1) === '/';
+            $contents    = $isDirectory ? '' : (string) ($file['data'] ?? '');
+
+            if (\strlen($contents) > self::MAX_ENTRY_SIZE) {
+                throw new \InvalidArgumentException(
+                    sprintf('Entry "%s" exceeds the 8 GiB the tar format can store.', $name)
+                );
+            }
+
+            $data .= $this->buildHeader(
+                $name,
+                \strlen($contents),
+                (int) ($file['mode'] ?? ($isDirectory ? 0755 : 0644)),
+                (int) ($file['time'] ?? time()),
+                $isDirectory ? '5' : '0'
+            );
+
+            if ($contents !== '') {
+                // Entry data is padded out to a whole number of blocks
+                $data .= str_pad(
+                    $contents,
+                    (int) ceil(\strlen($contents) / self::BLOCK_SIZE) * self::BLOCK_SIZE,
+                    "\0"
+                );
+            }
+        }
+
+        // A tar archive is terminated by two blocks of nulls
+        return $data . str_repeat("\0", self::BLOCK_SIZE * 2);
+    }
+
+    /**
+     * Build the 512 byte USTAR header block for one entry.
+     *
+     * @param   string   $name  Path of the entry inside the archive.
+     * @param   integer  $size  Size of the entry data in bytes.
+     * @param   integer  $mode  Permissions.
+     * @param   integer  $time  Modification time as a UNIX timestamp.
+     * @param   string   $type  The type flag: "0" for a file, "5" for a directory.
+     *
+     * @return  string
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if the name is too long for the format
+     */
+    private function buildHeader(string $name, int $size, int $mode, int $time, string $type): string
+    {
+        [$prefix, $name] = $this->splitName($name);
+
+        $header = str_pad($name, 100, "\0")            // name
+            . sprintf("%07o\0", $mode & 0777)          // mode
+            . sprintf("%07o\0", 0)                     // uid
+            . sprintf("%07o\0", 0)                     // gid
+            . sprintf("%011o\0", $size)                // size
+            . sprintf("%011o\0", $time)                // mtime
+            . '        '                               // checksum, spaces while it is calculated
+            . $type                                    // typeflag
+            . str_repeat("\0", 100)                    // linkname
+            . "ustar\0"                                // magic
+            . '00'                                     // version
+            . str_repeat("\0", 32)                     // uname
+            . str_repeat("\0", 32)                     // gname
+            . sprintf("%07o\0", 0)                     // devmajor
+            . sprintf("%07o\0", 0)                     // devminor
+            . str_pad($prefix, 155, "\0");             // prefix
+
+        $header = str_pad($header, self::BLOCK_SIZE, "\0");
+
+        $checksum = 0;
+
+        for ($i = 0; $i < self::BLOCK_SIZE; $i++) {
+            $checksum += \ord($header[$i]);
+        }
+
+        // The checksum itself occupies bytes 148 to 155
+        return substr_replace($header, sprintf("%06o\0 ", $checksum), 148, 8);
+    }
+
+    /**
+     * Split a path into the USTAR prefix and name fields.
+     *
+     * @param   string  $name  Path of the entry inside the archive.
+     *
+     * @return  array  A [prefix, name] pair.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if the path cannot be split to fit
+     */
+    private function splitName(string $name): array
+    {
+        if (\strlen($name) <= 100) {
+            return ['', $name];
+        }
+
+        /*
+         * Split as late as possible: the further right the slash, the shorter the remainder. The
+         * first candidate scanning left therefore gives the only chance of fitting - if its
+         * remainder is too long, every shorter prefix produces a longer one still.
+         */
+        $slash = strrpos(substr($name, 0, 156), '/');
+
+        if ($slash !== false && $slash > 0 && \strlen($name) - $slash - 1 <= 100) {
+            return [substr($name, 0, $slash), substr($name, $slash + 1)];
+        }
+
+        throw new \InvalidArgumentException(
+            sprintf(
+                'The path "%s" cannot be stored in a tar archive: it does not fit the 100 character'
+                . ' name field and has no slash that would split it across the 155 character prefix field.',
+                $name
+            )
+        );
     }
 
     /**
