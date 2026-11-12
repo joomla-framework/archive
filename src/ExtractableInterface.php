@@ -27,7 +27,7 @@ interface ExtractableInterface
      * @since   1.0
      * @throws  \RuntimeException
      */
-    public function extract($archive, $destination);
+    public function extract(string $archive, string $destination): bool;
 
     /**
      * Tests whether this adapter can unpack files on this computer.
@@ -36,5 +36,5 @@ interface ExtractableInterface
      *
      * @since   1.0
      */
-    public static function isSupported();
+    public static function isSupported(): bool;
 }

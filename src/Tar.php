@@ -98,7 +98,7 @@ class Tar implements ExtractableInterface
      * @since   1.0
      * @throws  \RuntimeException
      */
-    public function extract($archive, $destination)
+    public function extract(string $archive, string $destination): bool
     {
         $this->metadata = [];
         $this->data     = file_get_contents($archive);
@@ -141,7 +141,7 @@ class Tar implements ExtractableInterface
      *
      * @since   1.0
      */
-    public static function isSupported()
+    public static function isSupported(): bool
     {
         return true;
     }
