@@ -10,18 +10,17 @@ namespace Joomla\Archive\Tests;
 use Joomla\Archive\Gzip as ArchiveGzip;
 use Joomla\Archive\Tar as ArchiveTar;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Gzip.
  */
+#[CoversClass(ArchiveGzip::class)]
 class GzipTest extends ArchiveTestCase
 {
-    /**
-     * @testdox  The gzip adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The gzip adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveGzip();
@@ -34,11 +33,7 @@ class GzipTest extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveGzip::isSupported()) {
@@ -63,11 +58,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-gz.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted via streams
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
         $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
@@ -91,11 +82,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-gz.png');
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertSame(
@@ -104,11 +91,7 @@ class GzipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The file position is detected
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The file position is detected')]
     public function testGetFilePosition()
     {
         $object = new ArchiveGzip();
@@ -126,11 +109,7 @@ class GzipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The file position is detected with every optional header field present
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The file position is detected with every optional header field present')]
     public function testGetFilePositionWithAllFlagsSet()
     {
         $payload = "The quick brown fox\n";
@@ -195,11 +174,7 @@ class GzipTest extends ArchiveTestCase
         return $header . gzdeflate($payload) . pack('V', crc32($payload)) . pack('V', \strlen($payload));
     }
 
-    /**
-     * @testdox  A single file is compressed as it is and can be read back
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('A single file is compressed as it is and can be read back')]
     public function testCreateWithASingleFile()
     {
         if (!ArchiveGzip::isSupported()) {
@@ -223,11 +198,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-created.png');
     }
 
-    /**
-     * @testdox  A single file archive records the original file name in the header
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('A single file archive records the original file name in the header')]
     public function testCreateStoresTheOriginalFileName()
     {
         if (!ArchiveGzip::isSupported()) {
@@ -252,11 +223,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($archive);
     }
 
-    /**
-     * @testdox  An archive named as a tarball wraps its contents in a tar
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An archive named as a tarball wraps its contents in a tar')]
     #[DataProvider('tarballNameProvider')]
     public function testCreateWrapsTarballsInATar(string $name)
     {
@@ -303,11 +270,7 @@ class GzipTest extends ArchiveTestCase
         ];
     }
 
-    /**
-     * @testdox  Several files cannot be stored in an archive that is not named as a tarball
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('Several files cannot be stored in an archive that is not named as a tarball')]
     public function testCreateRejectsSeveralFilesWithoutATarballName()
     {
         $object = new ArchiveGzip();
@@ -320,11 +283,7 @@ class GzipTest extends ArchiveTestCase
         ]);
     }
 
-    /**
-     * @testdox  An empty file list is rejected
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An empty file list is rejected')]
     public function testCreateRejectsAnEmptyFileList()
     {
         $object = new ArchiveGzip();
@@ -334,11 +293,7 @@ class GzipTest extends ArchiveTestCase
         $object->create($this->outputPath . '/empty.gz', []);
     }
 
-    /**
-     * @testdox  An out of range compression level is rejected
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An out of range compression level is rejected')]
     public function testCreateRejectsAnInvalidCompressionLevel()
     {
         $object = new ArchiveGzip(['gzip_level' => 12]);
@@ -348,11 +303,7 @@ class GzipTest extends ArchiveTestCase
         $object->create($this->outputPath . '/level.gz', [['name' => 'a.txt', 'data' => 'A']]);
     }
 
-    /**
-     * @testdox  The compression level option is applied
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The compression level option is applied')]
     public function testCreateAppliesTheCompressionLevel()
     {
         if (!ArchiveGzip::isSupported()) {
