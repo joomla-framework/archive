@@ -48,6 +48,25 @@ class TarTest extends ArchiveTestCase
         }
     }
 
+    #[TestDox('The entries of an archive can be listed without extracting it')]
+    public function testListContents()
+    {
+        $this->assertSame(
+            [['name' => 'logo-tar.png', 'size' => 7197, 'type' => 'file']],
+            (new ArchiveTar())->listContents($this->inputPath . '/logo.tar')
+        );
+
+        $this->assertFileDoesNotExist($this->outputPath . '/logo-tar.png');
+    }
+
+    #[TestDox('Listing a missing archive throws an Exception')]
+    public function testListContentsMissingArchive()
+    {
+        $this->expectException(\RuntimeException::class);
+
+        (new ArchiveTar())->listContents($this->inputPath . '/foobar.tar');
+    }
+
     #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
