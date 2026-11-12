@@ -9,17 +9,16 @@ namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Gzip as ArchiveGzip;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Gzip.
  */
+#[CoversClass(ArchiveGzip::class)]
 class GzipTest extends ArchiveTestCase
 {
-    /**
-     * @testdox  The gzip adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The gzip adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveGzip();
@@ -32,11 +31,7 @@ class GzipTest extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveGzip::isSupported()) {
@@ -61,11 +56,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-gz.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted via streams
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
         $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
@@ -89,11 +80,7 @@ class GzipTest extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-gz.png');
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertSame(
@@ -102,11 +89,7 @@ class GzipTest extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  The file position is detected
-     *
-     * @covers   Joomla\Archive\Gzip
-     */
+    #[TestDox('The file position is detected')]
     public function testGetFilePosition()
     {
         $object = new ArchiveGzip();
