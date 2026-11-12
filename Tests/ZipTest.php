@@ -7,6 +7,7 @@
 
 namespace Joomla\Archive\Tests;
 
+use Joomla\Archive\CreatableInterface;
 use Joomla\Archive\Zip as ArchiveZip;
 use Joomla\Test\TestHelper;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -30,6 +31,12 @@ class ZipTest extends ArchiveTestCase
         $object  = new ArchiveZip($options);
 
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
+    }
+
+    #[TestDox('The zip adapter can create archives')]
+    public function testImplementsCreatableInterface()
+    {
+        $this->assertInstanceOf(CreatableInterface::class, new ArchiveZip());
     }
 
     #[TestDox('An archive can be created')]
