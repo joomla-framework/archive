@@ -653,9 +653,18 @@ class Zip implements ExtractableInterface
      */
     private function isBelow($destination, $path): bool
     {
-        $absoluteRoot = Path::clean(Path::resolve($destination));
+        $absoluteRoot = rtrim(Path::clean(Path::resolve($destination)), \DIRECTORY_SEPARATOR);
         $absolutePath = Path::clean(Path::resolve($path));
 
-        return strpos($absolutePath, $absoluteRoot) === 0;
+        // Compare whole path segments, so that "/dest" does not match the sibling "/dest_evil"
+        $absoluteRoot .= \DIRECTORY_SEPARATOR;
+        $absolutePath .= \DIRECTORY_SEPARATOR;
+
+        // Windows file systems are case-insensitive
+        if (\DIRECTORY_SEPARATOR === '\\') {
+            return strncasecmp($absolutePath, $absoluteRoot, \strlen($absoluteRoot)) === 0;
+        }
+
+        return strncmp($absolutePath, $absoluteRoot, \strlen($absoluteRoot)) === 0;
     }
 }

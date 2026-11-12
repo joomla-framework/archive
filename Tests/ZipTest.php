@@ -164,6 +164,57 @@ class ZipTest extends ArchiveTestCase
         );
     }
 
+    #[TestDox('An entry pointing into a sibling directory that shares the destination name as prefix is rejected natively')]
+    public function testExtractNativeRejectsEntriesInSiblingDirectories()
+    {
+        if (!ArchiveZip::hasNativeSupport()) {
+            $this->markTestSkipped('ZIP files can not be extracted natively.');
+        }
+
+        $this->assertSiblingEntryIsRejected('extractNative');
+    }
+
+    #[TestDox('An entry pointing into a sibling directory that shares the destination name as prefix is rejected by the custom interface')]
+    public function testExtractCustomRejectsEntriesInSiblingDirectories()
+    {
+        $this->assertSiblingEntryIsRejected('extractCustom');
+    }
+
+    /**
+     * Extract an archive with an entry "../dest_evil/x.php" into "dest" and check that nothing is written to "dest_evil".
+     *
+     * @param   string  $method  The extraction method to use
+     *
+     * @return  void
+     */
+    private function assertSiblingEntryIsRejected(string $method): void
+    {
+        $archive     = $this->outputPath . '/sibling.zip';
+        $destination = $this->outputPath . '/dest';
+        $sibling     = $this->outputPath . '/dest_evil';
+
+        $object = new ArchiveZip();
+        $object->create($archive, [['name' => '../dest_evil/x.php', 'data' => '<?php echo "pwned";']]);
+
+        $exception = null;
+
+        try {
+            TestHelper::invoke($object, $method, $archive, $destination);
+        } catch (\RuntimeException $exception) {
+        }
+
+        $written = is_file($sibling . '/x.php');
+
+        @unlink($sibling . '/x.php');
+        @rmdir($sibling);
+        @rmdir($destination);
+        @unlink($archive);
+
+        $this->assertFalse($written, 'The entry must not be written to the sibling directory');
+        $this->assertInstanceOf(\RuntimeException::class, $exception);
+        $this->assertSame('Unable to write outside of destination path', $exception->getMessage());
+    }
+
     #[TestDox('The adapter correctly checks ZIP data')]
     public function testCheckZipData()
     {
