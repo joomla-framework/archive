@@ -9,6 +9,7 @@
 
 namespace Joomla\Archive;
 
+use Joomla\Archive\Exception\UnsafeArchiveEntryException;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
@@ -216,6 +217,7 @@ class Zip implements ExtractableInterface
      *
      * @since   1.0
      * @throws  \RuntimeException
+     * @throws  UnsafeArchiveEntryException if an entry would be written outside of the destination path
      */
     protected function extractCustom($archive, $destination)
     {
@@ -231,23 +233,30 @@ class Zip implements ExtractableInterface
 
         foreach ($this->metadata as $i => $metadata) {
             $lastPathCharacter = substr($metadata['name'], -1, 1);
+            $path              = Path::clean($destination . '/' . $metadata['name']);
 
-            if ($lastPathCharacter !== '/' && $lastPathCharacter !== '\\') {
-                $buffer = $this->getFileData($i);
-                $path   = Path::clean($destination . '/' . $metadata['name']);
+            if (!$this->isBelow($destination, $destination . '/' . $metadata['name'])) {
+                throw new UnsafeArchiveEntryException('Unable to write outside of destination path', 100);
+            }
 
-                if (!$this->isBelow($destination, $destination . '/' . $metadata['name'])) {
-                    throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
-                }
-
-                // Make sure the destination folder exists
-                if (!Folder::create(\dirname($path))) {
+            // Directory entries, which also keep empty directories
+            if ($lastPathCharacter === '/' || $lastPathCharacter === '\\') {
+                if (!Folder::create($path)) {
                     throw new \RuntimeException('Unable to create destination folder');
                 }
 
-                if (!File::write($path, $buffer)) {
-                    throw new \RuntimeException('Unable to write file');
-                }
+                continue;
+            }
+
+            $buffer = $this->getFileData($i);
+
+            // Make sure the destination folder exists
+            if (!Folder::create(\dirname($path))) {
+                throw new \RuntimeException('Unable to create destination folder');
+            }
+
+            if (!File::write($path, $buffer)) {
+                throw new \RuntimeException('Unable to write file');
             }
         }
 
@@ -263,6 +272,7 @@ class Zip implements ExtractableInterface
      * @return  boolean  True on success
      *
      * @throws  \RuntimeException
+     * @throws  UnsafeArchiveEntryException if an entry would be written outside of the destination path
      * @since   1.0
      */
     protected function extractNative($archive, $destination)
@@ -282,7 +292,16 @@ class Zip implements ExtractableInterface
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $file = $zip->getNameIndex($index);
 
+            if (!$this->isBelow($destination, $destination . '/' . $file)) {
+                throw new UnsafeArchiveEntryException('Unable to write outside of destination path', 100);
+            }
+
+            // Directory entries, which also keep empty directories
             if (substr($file, -1) === '/') {
+                if (!Folder::create($destination . '/' . $file)) {
+                    throw new \RuntimeException('Unable to create destination folder ' . $destination . '/' . $file);
+                }
+
                 continue;
             }
 
@@ -290,10 +309,6 @@ class Zip implements ExtractableInterface
 
             if ($buffer === false) {
                 throw new \RuntimeException('Unable to read ZIP entry');
-            }
-
-            if (!$this->isBelow($destination, $destination . '/' . $file)) {
-                throw new \RuntimeException('Unable to write outside of destination path', 100);
             }
 
             if (File::write($destination . '/' . $file, $buffer) === false) {
