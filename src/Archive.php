@@ -147,41 +147,41 @@ class Archive
     /**
      * Method to override the provided adapter with your own implementation.
      *
-     * @param   string   $type      Name of the adapter to set.
-     * @param   string   $class     FQCN of your class which implements ExtractableInterface.
-     * @param   boolean  $override  True to force override the adapter type.
+     * @param   string         $type      Name of the adapter to set.
+     * @param   string|object  $class     FQCN of your class which implements ExtractableInterface, or an instance of it.
+     * @param   boolean        $override  True to force override the adapter type.
      *
      * @return  $this
      *
      * @since   1.0
-     * @throws  UnsupportedArchiveException if the adapter type is not supported
+     * @throws  UnsupportedArchiveException if the adapter type is not supported or not available in this environment
      */
     public function setAdapter($type, $class, $override = true)
     {
         if ($override || !isset($this->adapters[$type])) {
-            if (!\is_object($class) && !class_exists($class)) {
-                throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not found.', $type, $class));
+            $className = \is_object($class) ? $class::class : $class;
+
+            if (!class_exists($className)) {
+                throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not found.', $type, $className));
             }
 
-            if (\is_object($class) && !$class::isSupported()) {
-                throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not supported.', $type, $class));
-            }
-
-            $object = new $class($this->options);
-
-            if (!($object instanceof ExtractableInterface)) {
+            if (!is_a($className, ExtractableInterface::class, true)) {
                 throw new UnsupportedArchiveException(
                     $type,
                     sprintf(
                         'The provided adapter "%s" (class "%s") must implement %s',
                         $type,
-                        $class,
+                        $className,
                         ExtractableInterface::class
                     )
                 );
             }
 
-            $this->adapters[$type] = $object;
+            if (!$className::isSupported()) {
+                throw new UnsupportedArchiveException($type, sprintf('Archive adapter "%s" (class "%s") not supported.', $type, $className));
+            }
+
+            $this->adapters[$type] = new $className($this->options);
         }
 
         return $this;
