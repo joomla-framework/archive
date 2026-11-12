@@ -1,18 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to function is_object\(\) with class\-string will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: src/Archive.php
-
-		-
-			message: '#^Call to function is_object\(\) with string will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 1
-			path: src/Archive.php
-
-		-
 			message: '#^Instanceof between ArrayAccess and ArrayAccess will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 1
@@ -21,7 +9,7 @@ parameters:
 		-
 			message: '#^Result of && is always false\.$#'
 			identifier: booleanAnd.alwaysFalse
-			count: 2
+			count: 1
 			path: src/Archive.php
 
 		-

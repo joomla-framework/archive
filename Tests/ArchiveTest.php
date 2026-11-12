@@ -165,4 +165,38 @@ class ArchiveTest extends ArchiveTestCase
 
         $this->fixture->setAdapter('unknown', 'unknown-class');
     }
+
+    #[TestDox('Setting an adapter that is not supported in this environment throws an Exception')]
+    public function testSetAdapterNotSupportedException()
+    {
+        $this->expectException(UnsupportedArchiveException::class);
+        $this->expectExceptionMessage('Archive adapter "stub" (class "' . UnsupportedAdapterStub::class . '") not supported.');
+
+        $this->fixture->setAdapter('stub', UnsupportedAdapterStub::class);
+    }
+
+    #[TestDox('Setting a class that is not an adapter throws an Exception')]
+    public function testSetAdapterNotAnAdapterException()
+    {
+        $this->expectException(UnsupportedArchiveException::class);
+        $this->expectExceptionMessage('must implement');
+
+        $this->fixture->setAdapter('stub', \stdClass::class);
+    }
+}
+
+/**
+ * An adapter that reports it cannot be used in this environment.
+ */
+class UnsupportedAdapterStub implements \Joomla\Archive\ExtractableInterface
+{
+    public function extract($archive, $destination)
+    {
+        throw new \LogicException('An unsupported adapter must not be used');
+    }
+
+    public static function isSupported()
+    {
+        return false;
+    }
 }
