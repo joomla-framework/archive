@@ -59,10 +59,13 @@ class GzipTest extends ArchiveTestCase
     #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
-        $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
-
         if (!ArchiveGzip::isSupported()) {
             $this->markTestSkipped('Gzip files can not be extracted.');
+        }
+
+        if (\PHP_OS_FAMILY === 'Windows') {
+            // joomla/filesystem up to 4.2.1 reads the drive letter of an absolute path as a URL scheme
+            $this->markTestSkipped('Stream does not detect the processing method for Windows paths, see joomla-framework/filesystem#88.');
         }
 
         $object = new ArchiveGzip(['use_streams' => true]);
