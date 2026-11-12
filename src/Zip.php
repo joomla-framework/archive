@@ -35,7 +35,7 @@ use Joomla\Filesystem\Path;
  *
  * @since  1.0
  */
-class Zip implements ExtractableInterface
+class Zip implements ExtractableInterface, CreatableInterface
 {
     /**
      * ZIP compression methods.
@@ -123,6 +123,18 @@ class Zip implements ExtractableInterface
 
     /**
      * Create a ZIP compressed file from an array of file data.
+     *
+     * Each entry is an array with the following keys:
+     *
+     * <pre>
+     * 'name' --  Path of the entry inside the archive. Required. A trailing slash makes it a directory.
+     * 'data' --  Raw contents of the entry. Ignored for directories, defaults to an empty string.
+     * 'time' --  Modification time as a UNIX timestamp. Defaults to the current time.
+     * </pre>
+     *
+     * Entries are deflated and assembled in memory, so the whole archive has to fit into
+     * `memory_limit`. ZIP64 is not implemented, so the limits of the original format apply: see
+     * `MAX_ENTRY_SIZE` and `MAX_ENTRIES`.
      *
      * @param   string  $archive  Path to save archive.
      * @param   array   $files    Array of files to add to archive.

@@ -24,8 +24,24 @@ use Joomla\Filesystem\Path;
  *
  * @since  1.0
  */
-class Tar implements ExtractableInterface
+class Tar implements ExtractableInterface, CreatableInterface
 {
+    /**
+     * Length of a tar header block, and the multiple every entry is padded to.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const BLOCK_SIZE = 512;
+
+    /**
+     * Largest file size the 11 octal digits of the USTAR size field can express.
+     *
+     * @var    integer
+     * @since  __DEPLOY_VERSION__
+     */
+    private const MAX_ENTRY_SIZE = 8589934591;
+
     /**
      * Tar file types.
      *
@@ -88,15 +104,189 @@ class Tar implements ExtractableInterface
     }
 
     /**
-     * Extract a ZIP compressed file to a given path
+     * Create a Tar archive from an array of file data.
      *
-     * @param   string  $archive      Path to ZIP archive to extract
+     * Each entry is an array with the following keys:
+     *
+     * <pre>
+     * 'name' --  Path of the entry inside the archive. Required. A trailing slash makes it a directory.
+     * 'data' --  Raw contents of the entry. Ignored for directories, defaults to an empty string.
+     * 'time' --  Modification time as a UNIX timestamp. Defaults to the current time.
+     * 'mode' --  Permissions as an integer. Defaults to 0644 for files and 0755 for directories.
+     * </pre>
+     *
+     * The archive is assembled in memory before it is written, so the whole of it has to fit into
+     * `memory_limit`. Individual entries are limited to 8 GiB by the tar format itself.
+     *
+     * @param   string  $archive  Path to save the archive to.
+     * @param   array   $files    Array of file data to add to the archive.
+     *
+     * @return  boolean  True if successful.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if an entry is malformed or cannot be represented in the tar format
+     * @throws  \RuntimeException if the archive cannot be written
+     */
+    public function create($archive, $files)
+    {
+        if (!File::write($archive, $this->createData($files))) {
+            throw new \RuntimeException('Unable to write archive to file ' . $archive);
+        }
+
+        return true;
+    }
+
+    /**
+     * Build a Tar archive from an array of file data and return it as a string.
+     *
+     * @param   array  $files  Array of file data to add to the archive. See `create()`.
+     *
+     * @return  string  The raw archive.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if an entry is malformed or cannot be represented in the tar format
+     */
+    public function createData(array $files): string
+    {
+        $data = '';
+
+        foreach ($files as $file) {
+            if (!\is_array($file) && !($file instanceof \ArrayAccess)) {
+                throw new \InvalidArgumentException(
+                    'Each entry must be an array or implement the ArrayAccess interface.'
+                );
+            }
+
+            if (!isset($file['name']) || (string) $file['name'] === '') {
+                throw new \InvalidArgumentException('Each entry must have a non-empty "name".');
+            }
+
+            $name        = str_replace('\\', '/', (string) $file['name']);
+            $isDirectory = substr($name, -1) === '/';
+            $contents    = $isDirectory ? '' : (string) ($file['data'] ?? '');
+
+            if (\strlen($contents) > self::MAX_ENTRY_SIZE) {
+                throw new \InvalidArgumentException(
+                    sprintf('Entry "%s" exceeds the 8 GiB the tar format can store.', $name)
+                );
+            }
+
+            $data .= $this->buildHeader(
+                $name,
+                \strlen($contents),
+                (int) ($file['mode'] ?? ($isDirectory ? 0755 : 0644)),
+                (int) ($file['time'] ?? time()),
+                $isDirectory ? '5' : '0'
+            );
+
+            if ($contents !== '') {
+                // Entry data is padded out to a whole number of blocks
+                $data .= str_pad(
+                    $contents,
+                    (int) ceil(\strlen($contents) / self::BLOCK_SIZE) * self::BLOCK_SIZE,
+                    "\0"
+                );
+            }
+        }
+
+        // A tar archive is terminated by two blocks of nulls
+        return $data . str_repeat("\0", self::BLOCK_SIZE * 2);
+    }
+
+    /**
+     * Build the 512 byte USTAR header block for one entry.
+     *
+     * @param   string   $name  Path of the entry inside the archive.
+     * @param   integer  $size  Size of the entry data in bytes.
+     * @param   integer  $mode  Permissions.
+     * @param   integer  $time  Modification time as a UNIX timestamp.
+     * @param   string   $type  The type flag: "0" for a file, "5" for a directory.
+     *
+     * @return  string
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if the name is too long for the format
+     */
+    private function buildHeader(string $name, int $size, int $mode, int $time, string $type): string
+    {
+        [$prefix, $name] = $this->splitName($name);
+
+        $header = str_pad($name, 100, "\0")            // name
+            . sprintf("%07o\0", $mode & 0777)          // mode
+            . sprintf("%07o\0", 0)                     // uid
+            . sprintf("%07o\0", 0)                     // gid
+            . sprintf("%011o\0", $size)                // size
+            . sprintf("%011o\0", $time)                // mtime
+            . '        '                               // checksum, spaces while it is calculated
+            . $type                                    // typeflag
+            . str_repeat("\0", 100)                    // linkname
+            . "ustar\0"                                // magic
+            . '00'                                     // version
+            . str_repeat("\0", 32)                     // uname
+            . str_repeat("\0", 32)                     // gname
+            . sprintf("%07o\0", 0)                     // devmajor
+            . sprintf("%07o\0", 0)                     // devminor
+            . str_pad($prefix, 155, "\0");             // prefix
+
+        $header = str_pad($header, self::BLOCK_SIZE, "\0");
+
+        $checksum = 0;
+
+        for ($i = 0; $i < self::BLOCK_SIZE; $i++) {
+            $checksum += \ord($header[$i]);
+        }
+
+        // The checksum itself occupies bytes 148 to 155
+        return substr_replace($header, sprintf("%06o\0 ", $checksum), 148, 8);
+    }
+
+    /**
+     * Split a path into the USTAR prefix and name fields.
+     *
+     * @param   string  $name  Path of the entry inside the archive.
+     *
+     * @return  array  A [prefix, name] pair.
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \InvalidArgumentException if the path cannot be split to fit
+     */
+    private function splitName(string $name): array
+    {
+        if (\strlen($name) <= 100) {
+            return ['', $name];
+        }
+
+        /*
+         * Split as late as possible: the further right the slash, the shorter the remainder. The
+         * first candidate scanning left therefore gives the only chance of fitting - if its
+         * remainder is too long, every shorter prefix produces a longer one still.
+         */
+        $slash = strrpos(substr($name, 0, 156), '/');
+
+        if ($slash !== false && $slash > 0 && \strlen($name) - $slash - 1 <= 100) {
+            return [substr($name, 0, $slash), substr($name, $slash + 1)];
+        }
+
+        throw new \InvalidArgumentException(
+            sprintf(
+                'The path "%s" cannot be stored in a tar archive: it does not fit the 100 character'
+                . ' name field and has no slash that would split it across the 155 character prefix field.',
+                $name
+            )
+        );
+    }
+
+    /**
+     * Extract a Tar archive to a given path
+     *
+     * @param   string  $archive      Path to Tar archive to extract
      * @param   string  $destination  Path to extract archive into
      *
      * @return  boolean True if successful
      *
      * @since   1.0
-     * @throws  \RuntimeException
+     * @throws  \RuntimeException if the archive cannot be read or an entry cannot be written
+     * @throws  \OutOfBoundsException if an entry would be written outside the destination
      */
     public function extract($archive, $destination)
     {
@@ -110,24 +300,34 @@ class Tar implements ExtractableInterface
         $this->getTarInfo($this->data);
 
         for ($i = 0, $n = \count($this->metadata); $i < $n; $i++) {
-            $type = strtolower($this->metadata[$i]['type']);
+            $type = strtolower((string) $this->metadata[$i]['type']);
 
-            if ($type == 'file' || $type == 'unix file') {
-                $buffer = $this->metadata[$i]['data'];
-                $path   = Path::clean($destination . '/' . $this->metadata[$i]['name']);
+            // Links, devices and unknown entry types are not extracted
+            if ($type !== 'file' && $type !== 'unix file' && $type !== 'directory') {
+                continue;
+            }
 
-                if (!$this->isBelow($destination, $destination . '/' . $this->metadata[$i]['name'])) {
-                    throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
+            $path = Path::clean($destination . '/' . $this->metadata[$i]['name']);
+
+            if (!$this->isBelow($destination, $destination . '/' . $this->metadata[$i]['name'])) {
+                throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
+            }
+
+            if ($type === 'directory') {
+                if (!Folder::create($path)) {
+                    throw new \RuntimeException('Unable to create destination folder ' . $path);
                 }
 
-                // Make sure the destination folder exists
-                if (!Folder::create(\dirname($path))) {
-                    throw new \RuntimeException('Unable to create destination folder ' . \dirname($path));
-                }
+                continue;
+            }
 
-                if (!File::write($path, $buffer)) {
-                    throw new \RuntimeException('Unable to write entry to file ' . $path);
-                }
+            // Make sure the destination folder exists
+            if (!Folder::create(\dirname($path))) {
+                throw new \RuntimeException('Unable to create destination folder ' . \dirname($path));
+            }
+
+            if (!File::write($path, $this->metadata[$i]['data'])) {
+                throw new \RuntimeException('Unable to write entry to file ' . $path);
             }
         }
 
@@ -135,7 +335,7 @@ class Tar implements ExtractableInterface
     }
 
     /**
-     * Tests whether this adapter can unpack files on this computer.
+     * Tests whether this adapter can pack and unpack files on this computer.
      *
      * @return  boolean  True if supported
      *
@@ -172,9 +372,13 @@ class Tar implements ExtractableInterface
         $position    = 0;
         $returnArray = [];
 
+        // Records of pax extended headers: global ones apply to all following entries, the others to the next one only
+        $paxGlobal = [];
+        $paxNext   = [];
+
         while ($position < \strlen($data)) {
             $info = @unpack(
-                'Z100filename/Z8mode/Z8uid/Z8gid/Z12size/Z12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor',
+                'Z100filename/Z8mode/Z8uid/Z8gid/a12size/a12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor/Z155prefix',
                 $data,
                 $position
             );
@@ -183,26 +387,62 @@ class Tar implements ExtractableInterface
              * This variable has been set in the previous loop, meaning that the filename was present in the previous block
              * to allow more than 100 characters - see below
              */
+            $usedLongLink = false;
+
             if (isset($longlinkfilename)) {
                 $info['filename'] = $longlinkfilename;
                 unset($longlinkfilename);
+                $usedLongLink = true;
             }
 
             if (!$info) {
                 throw new \RuntimeException('Unable to decompress data');
             }
 
+            /*
+             * USTAR stores a path longer than the 100 character name field split across a separate
+             * 155 character prefix field. Only the POSIX format uses it - the old GNU format writes
+             * "ustar " into the magic and puts unrelated data where the prefix would be.
+             */
+            if (!$usedLongLink && $info['magic'] === 'ustar' && $info['prefix'] !== '') {
+                $info['filename'] = $info['prefix'] . '/' . $info['filename'];
+            }
+
+            $isPaxHeader = $info['typeflag'] === 0x78 || $info['typeflag'] === 0x67;
+            $pax         = $isPaxHeader ? [] : array_merge($paxGlobal, $paxNext);
+
+            if (isset($pax['path'])) {
+                $info['filename'] = $pax['path'];
+            }
+
+            $size = isset($pax['size']) ? (int) $pax['size'] : $this->parseNumber($info['size']);
+
             $position += 512;
-            $contents = substr($data, $position, octdec($info['size']));
-            $position += (int) ceil(octdec($info['size']) / 512) * 512;
+            $contents = substr($data, $position, $size);
+            $position += (int) ceil($size / 512) * 512;
+
+            // pax extended headers (POSIX.1-2001): "x" applies to the next entry, "g" to all following entries
+            if ($isPaxHeader) {
+                $records = $this->parsePaxRecords($contents);
+
+                if ($info['typeflag'] === 0x67) {
+                    $paxGlobal = array_merge($paxGlobal, $records);
+                } else {
+                    $paxNext = $records;
+                }
+
+                continue;
+            }
+
+            $paxNext = [];
 
             if ($info['filename']) {
                 $file = [
                     'attr' => null,
                     'data' => null,
-                    'date' => octdec($info['mtime']),
+                    'date' => isset($pax['mtime']) ? (int) $pax['mtime'] : $this->parseNumber($info['mtime']),
                     'name' => trim($info['filename']),
-                    'size' => octdec($info['size']),
+                    'size' => $size,
                     'type' => self::TYPES[$info['typeflag']] ?? null,
                 ];
 
@@ -234,6 +474,85 @@ class Tar implements ExtractableInterface
         }
 
         $this->metadata = $returnArray;
+    }
+
+    /**
+     * Parse a numeric header field.
+     *
+     * The field is usually an octal number terminated by a NUL or a space. GNU tar and others store
+     * values that do not fit, such as sizes of 8 GiB and more, in base-256 instead, which is flagged by
+     * the high bit of the first byte.
+     *
+     * @param   string  $field  The raw header field
+     *
+     * @return  integer
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the field holds a negative base-256 number
+     */
+    private function parseNumber(string $field): int
+    {
+        if ($field !== '' && (\ord($field[0]) & 0x80)) {
+            if (\ord($field[0]) & 0x40) {
+                throw new \RuntimeException('Unable to decompress data: negative number in header');
+            }
+
+            $value = \ord($field[0]) & 0x3f;
+
+            for ($i = 1, $n = \strlen($field); $i < $n; $i++) {
+                $value = ($value << 8) | \ord($field[$i]);
+            }
+
+            return $value;
+        }
+
+        $field = trim(substr($field, 0, strcspn($field, "\0")), ' ');
+
+        return $field === '' ? 0 : (int) octdec($field);
+    }
+
+    /**
+     * Parse the records of a pax extended header.
+     *
+     * Each record has the form "<length> <keyword>=<value>\n", where the length counts the whole record.
+     *
+     * @param   string  $contents  The data of the pax header entry
+     *
+     * @return  array<string, string>  The values keyed by keyword
+     *
+     * @since   __DEPLOY_VERSION__
+     */
+    private function parsePaxRecords(string $contents): array
+    {
+        $records  = [];
+        $position = 0;
+        $length   = \strlen($contents);
+
+        while ($position < $length) {
+            $space = strpos($contents, ' ', $position);
+
+            if ($space === false) {
+                break;
+            }
+
+            $recordLength = (int) substr($contents, $position, $space - $position);
+
+            if ($recordLength <= $space - $position + 1 || $position + $recordLength > $length) {
+                break;
+            }
+
+            // The record without its length prefix and the trailing newline
+            $record = substr($contents, $space + 1, $position + $recordLength - $space - 2);
+            $equals = strpos($record, '=');
+
+            if ($equals !== false) {
+                $records[substr($record, 0, $equals)] = substr($record, $equals + 1);
+            }
+
+            $position += $recordLength;
+        }
+
+        return $records;
     }
 
     /**
