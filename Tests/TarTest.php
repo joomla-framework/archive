@@ -9,17 +9,16 @@ namespace Joomla\Archive\Tests;
 
 use Joomla\Archive\Tar as ArchiveTar;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Tar.
  */
+#[CoversClass(ArchiveTar::class)]
 class TarTest extends ArchiveTestCase
 {
-    /**
-     * @testdox  The tar adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('The tar adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveTar();
@@ -32,11 +31,7 @@ class TarTest extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveTar::isSupported()) {
@@ -53,11 +48,7 @@ class TarTest extends ArchiveTestCase
         }
     }
 
-    /**
-     * @testdox  An archive written by GNU tar with a long path is extracted to the full path
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('An archive written by GNU tar with a long path is extracted to the full path')]
     public function testExtractRestoresPathsStoredInThePrefixField()
     {
         $object      = new ArchiveTar();
@@ -70,26 +61,43 @@ class TarTest extends ArchiveTestCase
             . '/a-directory-with-a-fairly-long-name/and-another-nested-level-here'
             . '/and-one-more-to-push-past-100/payload.txt';
 
-        $this->assertFileExists(
-            $expected,
-            'The prefix field carries the directories, so ignoring it drops them from the path'
-        );
+        $exists     = is_file($expected);
+        $flatExists = is_file($destination . '/payload.txt');
 
-        $this->assertFileDoesNotExist(
-            $destination . '/payload.txt',
-            'The entry must not land flat in the destination'
-        );
+        $this->removeDirectory($destination);
 
-        $this->cleanUp([], [$destination]);
+        $this->assertTrue($exists, 'The prefix field carries the directories, so ignoring it drops them from the path');
+        $this->assertFalse($flatExists, 'The entry must not land flat in the destination');
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Tar
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertTrue(ArchiveTar::isSupported());
+    }
+
+    /**
+     * Remove a directory and everything below it.
+     *
+     * @param   string  $path  The directory to remove
+     *
+     * @return  void
+     */
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($items as $item) {
+            $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+        }
+
+        rmdir($path);
     }
 }
