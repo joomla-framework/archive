@@ -79,7 +79,7 @@ class Gzip implements ExtractableInterface
      * @since   1.0
      * @throws  \RuntimeException
      */
-    public function extract($archive, $destination)
+    public function extract(string $archive, string $destination): bool
     {
         $this->data = '';
 
@@ -145,7 +145,7 @@ class Gzip implements ExtractableInterface
      *
      * @since   1.0
      */
-    public static function isSupported()
+    public static function isSupported(): bool
     {
         return \extension_loaded('zlib');
     }
