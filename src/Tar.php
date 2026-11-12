@@ -26,6 +26,8 @@ use Joomla\Filesystem\Path;
  */
 class Tar implements ExtractableInterface
 {
+    use ExtractionLimitsTrait;
+
     /**
      * Tar file types.
      *
@@ -108,6 +110,10 @@ class Tar implements ExtractableInterface
         }
 
         $this->getTarInfo($this->data);
+
+        // The sizes in the headers are exact, so the limits can be checked before anything is written
+        $this->startLimits($archive);
+        $this->countExtracted(\count($this->metadata), (int) array_sum(array_column($this->metadata, 'size')));
 
         for ($i = 0, $n = \count($this->metadata); $i < $n; $i++) {
             $type = strtolower($this->metadata[$i]['type']);

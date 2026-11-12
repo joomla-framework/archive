@@ -9,6 +9,7 @@
 
 namespace Joomla\Archive;
 
+use Joomla\Archive\Exception\ExtractionLimitException;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Stream;
 
@@ -19,6 +20,8 @@ use Joomla\Filesystem\Stream;
  */
 class Bzip2 implements ExtractableInterface
 {
+    use ExtractionLimitsTrait;
+
     /**
      * Bzip2 file data buffer
      *
@@ -69,7 +72,17 @@ class Bzip2 implements ExtractableInterface
     {
         $this->data = '';
 
-        if (!isset($this->options['use_streams']) || $this->options['use_streams'] == false) {
+        $this->startLimits($archive);
+        $this->countExtracted(1, 0);
+
+        if ($this->hasLimits() && (!isset($this->options['use_streams']) || $this->options['use_streams'] == false)) {
+            // bzdecompress() has no length limit, so decompress in chunks
+            $buffer = $this->decompressWithLimits($archive);
+
+            if (!File::write($destination, $buffer)) {
+                throw new \RuntimeException('Unable to write archive to file ' . $destination);
+            }
+        } elseif (!isset($this->options['use_streams']) || $this->options['use_streams'] == false) {
             // Old style: read the whole file and then parse it
             $this->data = file_get_contents($archive);
 
@@ -110,6 +123,8 @@ class Bzip2 implements ExtractableInterface
                 $this->data = $input->read($input->get('chunksize', 8196));
 
                 if ($this->data) {
+                    $this->countExtracted(0, \strlen($this->data));
+
                     if (!$output->write($this->data)) {
                         $input->close();
 
@@ -123,6 +138,45 @@ class Bzip2 implements ExtractableInterface
         }
 
         return true;
+    }
+
+    /**
+     * Decompress a file in chunks and stop as soon as a limit is exceeded.
+     *
+     * @param   string  $archive  Path to the Bzip2 archive
+     *
+     * @return  string  The decompressed data
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException
+     * @throws  ExtractionLimitException
+     */
+    private function decompressWithLimits(string $archive): string
+    {
+        $handle = @bzopen($archive, 'r');
+
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to read archive');
+        }
+
+        $buffer = '';
+
+        try {
+            while (!feof($handle)) {
+                $chunk = @bzread($handle, 8192);
+
+                if ($chunk === false || bzerrno($handle) !== 0) {
+                    throw new \RuntimeException('Unable to decompress data');
+                }
+
+                $this->countExtracted(0, \strlen($chunk));
+                $buffer .= $chunk;
+            }
+        } finally {
+            bzclose($handle);
+        }
+
+        return $buffer;
     }
 
     /**

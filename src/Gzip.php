@@ -9,6 +9,7 @@
 
 namespace Joomla\Archive;
 
+use Joomla\Archive\Exception\ExtractionLimitException;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Stream;
 
@@ -25,6 +26,8 @@ use Joomla\Filesystem\Stream;
  */
 class Gzip implements ExtractableInterface
 {
+    use ExtractionLimitsTrait;
+
     /**
      * Gzip file flags.
      *
@@ -83,6 +86,9 @@ class Gzip implements ExtractableInterface
     {
         $this->data = '';
 
+        $this->startLimits($archive);
+        $this->countExtracted(1, 0);
+
         if (!isset($this->options['use_streams']) || $this->options['use_streams'] == false) {
             $this->data = file_get_contents($archive);
 
@@ -91,7 +97,8 @@ class Gzip implements ExtractableInterface
             }
 
             $position = $this->getFilePosition();
-            $buffer   = gzinflate(substr($this->data, $position, \strlen($this->data) - $position));
+            $deflated = substr($this->data, $position, \strlen($this->data) - $position);
+            $buffer   = $this->hasLimits() ? $this->inflateWithLimits($deflated) : gzinflate($deflated);
 
             if (empty($buffer)) {
                 throw new \RuntimeException('Unable to decompress data');
@@ -123,6 +130,8 @@ class Gzip implements ExtractableInterface
                 $this->data = $input->read($input->get('chunksize', 8196));
 
                 if ($this->data) {
+                    $this->countExtracted(0, \strlen($this->data));
+
                     if (!$output->write($this->data)) {
                         $input->close();
 
@@ -148,6 +157,35 @@ class Gzip implements ExtractableInterface
     public static function isSupported()
     {
         return \extension_loaded('zlib');
+    }
+
+    /**
+     * Inflate data in chunks and stop as soon as a limit is exceeded.
+     *
+     * @param   string  $data  Raw deflate data
+     *
+     * @return  string|false  The inflated data or false on error
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  ExtractionLimitException
+     */
+    private function inflateWithLimits(string $data): string|false
+    {
+        $context = inflate_init(\ZLIB_ENCODING_RAW);
+        $buffer  = '';
+
+        for ($offset = 0, $length = \strlen($data); $offset < $length && inflate_get_status($context) !== \ZLIB_STREAM_END; $offset += 8192) {
+            $output = @inflate_add($context, substr($data, $offset, 8192), \ZLIB_SYNC_FLUSH);
+
+            if ($output === false) {
+                return false;
+            }
+
+            $this->countExtracted(0, \strlen($output));
+            $buffer .= $output;
+        }
+
+        return inflate_get_status($context) === \ZLIB_STREAM_END ? $buffer : false;
     }
 
     /**

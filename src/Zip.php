@@ -9,6 +9,7 @@
 
 namespace Joomla\Archive;
 
+use Joomla\Archive\Exception\ExtractionLimitException;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
@@ -37,6 +38,8 @@ use Joomla\Filesystem\Path;
  */
 class Zip implements ExtractableInterface
 {
+    use ExtractionLimitsTrait;
+
     /**
      * ZIP compression methods.
      *
@@ -229,11 +232,19 @@ class Zip implements ExtractableInterface
             throw new \RuntimeException('Get ZIP Information failed');
         }
 
+        // Check the sizes declared in the central directory before anything is written
+        $this->startLimits($archive);
+        $this->countExtracted(\count($this->metadata), (int) array_sum(array_column($this->metadata, 'size')));
+
         foreach ($this->metadata as $i => $metadata) {
             $lastPathCharacter = substr($metadata['name'], -1, 1);
 
             if ($lastPathCharacter !== '/' && $lastPathCharacter !== '\\') {
                 $buffer = $this->getFileData($i);
+
+                if ($this->hasLimits() && \strlen($buffer) > $metadata['size']) {
+                    throw new ExtractionLimitException(sprintf('The ZIP entry %s is larger than declared', $metadata['name']));
+                }
                 $path   = Path::clean($destination . '/' . $metadata['name']);
 
                 if (!$this->isBelow($destination, $destination . '/' . $metadata['name'])) {
@@ -273,6 +284,19 @@ class Zip implements ExtractableInterface
             throw new \RuntimeException('Unable to open archive');
         }
 
+        // Check the sizes declared in the central directory before anything is written
+        $this->startLimits($archive);
+
+        if ($this->hasLimits()) {
+            $declaredSize = 0;
+
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $declaredSize += $zip->statIndex($index)['size'] ?? 0;
+            }
+
+            $this->countExtracted($zip->numFiles, $declaredSize);
+        }
+
         // Make sure the destination folder exists
         if (!Folder::create($destination)) {
             throw new \RuntimeException('Unable to create destination folder ' . \dirname($destination));
@@ -286,7 +310,17 @@ class Zip implements ExtractableInterface
                 continue;
             }
 
-            $buffer = $zip->getFromIndex($index);
+            if ($this->hasLimits()) {
+                // Read at most one byte more than declared, so an entry lying about its size cannot exhaust the memory
+                $declaredSize = $zip->statIndex($index)['size'] ?? 0;
+                $buffer       = $zip->getFromIndex($index, $declaredSize + 1);
+
+                if ($buffer !== false && \strlen($buffer) > $declaredSize) {
+                    throw new ExtractionLimitException(sprintf('The ZIP entry %s is larger than declared', $file));
+                }
+            } else {
+                $buffer = $zip->getFromIndex($index);
+            }
 
             if ($buffer === false) {
                 throw new \RuntimeException('Unable to read ZIP entry');
