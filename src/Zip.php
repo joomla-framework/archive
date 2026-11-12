@@ -52,6 +52,9 @@ class Zip implements ExtractableInterface
         0x5 => 'Maximum',
         0x6 => 'Imploded',
         0x8 => 'Deflated',
+        0x9 => 'Deflate64',
+        0xc => 'BZIP2',
+        0xe => 'LZMA',
     ];
 
     /**
@@ -353,15 +356,19 @@ class Zip implements ExtractableInterface
         }
 
         // Get details from central directory structure.
-        $fhStart    = strpos($data, self::CTRL_DIR_HEADER, $offset);
         $dataLength = \strlen($data);
+        $fhStart    = $offset < $dataLength ? strpos($data, self::CTRL_DIR_HEADER, $offset) : false;
+
+        if ($fhStart === false) {
+            throw new \RuntimeException('Invalid ZIP Data');
+        }
 
         do {
-            if ($dataLength < $fhStart + 31) {
+            if ($dataLength < $fhStart + 46) {
                 throw new \RuntimeException('Invalid ZIP Data');
             }
 
-            $info = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength', $data, $fhStart + 10);
+            $info = unpack('vFlags/vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength', $data, $fhStart + 8);
             $name = substr($data, $fhStart + 46, $info['Length']);
 
             $entries[$name] = [
@@ -370,8 +377,9 @@ class Zip implements ExtractableInterface
                 'csize'      => $info['Compressed'],
                 'date'       => null,
                 '_dataStart' => null,
+                '_flags'     => $info['Flags'],
                 'name'       => $name,
-                'method'     => self::METHODS[$info['Method']],
+                'method'     => self::METHODS[$info['Method']] ?? 'Unknown',
                 '_method'    => $info['Method'],
                 'size'       => $info['Uncompressed'],
                 'type'       => null,
@@ -386,10 +394,6 @@ class Zip implements ExtractableInterface
                 (($info['Time'] >> 25) & 0x7f) + 1980
             );
 
-            if ($dataLength < $fhStart + 43) {
-                throw new \RuntimeException('Invalid ZIP data');
-            }
-
             $info = unpack('vInternal/VExternal/VOffset', $data, $fhStart + 36);
 
             $entries[$name]['type'] = ($info['Internal'] & 0x01) ? 'text' : 'binary';
@@ -398,15 +402,19 @@ class Zip implements ExtractableInterface
             $entries[$name]['offset'] = $info['Offset'];
 
             // Get details from local file header since we have the offset
-            $lfhStart = strpos($data, self::FILE_HEADER, $entries[$name]['offset']);
+            $lfhStart = $info['Offset'] < $dataLength ? strpos($data, self::FILE_HEADER, $info['Offset']) : false;
 
-            if ($dataLength < $lfhStart + 34) {
+            if ($lfhStart === false || $dataLength < $lfhStart + 34) {
                 throw new \RuntimeException('Invalid ZIP Data');
             }
 
+            // The local header may use a different name length, but the central directory is authoritative for the name
             $info                         = unpack('vMethod/VTime/VCRC32/VCompressed/VUncompressed/vLength/vExtraLength', $data, $lfhStart + 8);
-            $name                         = substr($data, $lfhStart + 30, $info['Length']);
             $entries[$name]['_dataStart'] = $lfhStart + 30 + $info['Length'] + $info['ExtraLength'];
+
+            if ($dataLength < $entries[$name]['_dataStart'] + $entries[$name]['csize']) {
+                throw new \RuntimeException('Invalid ZIP Data');
+            }
 
             // Bump the max execution time because not using the built in php zip libs makes this process slow.
             @set_time_limit((int)ini_get('max_execution_time'));
@@ -425,26 +433,54 @@ class Zip implements ExtractableInterface
      * @return  string  Uncompressed file data buffer.
      *
      * @since   1.0
+     * @throws  \RuntimeException if the entry is encrypted, uses an unsupported compression method or is corrupt
      */
     private function getFileData(int $key): string
     {
-        if ($this->metadata[$key]['_method'] == 0x8) {
-            return gzinflate(substr($this->data, $this->metadata[$key]['_dataStart'], $this->metadata[$key]['csize']));
+        $entry = $this->metadata[$key];
+
+        if ($entry['_flags'] & 0x1) {
+            throw new \RuntimeException(sprintf('Unable to extract the encrypted ZIP entry %s', $entry['name']));
         }
 
-        if ($this->metadata[$key]['_method'] == 0x0) {
-            // Files that aren't compressed.
-            return substr($this->data, $this->metadata[$key]['_dataStart'], $this->metadata[$key]['csize']);
+        $data = substr($this->data, $entry['_dataStart'], $entry['csize']);
+
+        switch ($entry['_method']) {
+            case 0x0:
+                // Files that aren't compressed.
+                $buffer = $data;
+
+                break;
+
+            case 0x8:
+                $buffer = @gzinflate($data);
+
+                break;
+
+            case 0xc:
+                if (!\extension_loaded('bz2')) {
+                    throw new \RuntimeException(sprintf('The bz2 extension is required to extract the ZIP entry %s', $entry['name']));
+                }
+
+                $buffer = bzdecompress($data);
+
+                break;
+
+            default:
+                throw new \RuntimeException(
+                    sprintf('Unsupported compression method %d (%s) of the ZIP entry %s', $entry['_method'], $entry['method'], $entry['name'])
+                );
         }
 
-        if ($this->metadata[$key]['_method'] == 0x12) {
-            // If bz2 extension is loaded use it
-            if (\extension_loaded('bz2')) {
-                return bzdecompress(substr($this->data, $this->metadata[$key]['_dataStart'], $this->metadata[$key]['csize']));
-            }
+        if (!\is_string($buffer)) {
+            throw new \RuntimeException(sprintf('Unable to decompress the ZIP entry %s', $entry['name']));
         }
 
-        return '';
+        if (sprintf('%08x', crc32($buffer)) !== $entry['crc']) {
+            throw new \RuntimeException(sprintf('CRC32 mismatch in the ZIP entry %s', $entry['name']));
+        }
+
+        return $buffer;
     }
 
     /**
