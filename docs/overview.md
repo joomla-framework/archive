@@ -25,7 +25,7 @@ under the archive's name without the compression extension: `dump.sql.gz` become
 an uploaded `shell.php.gz` becomes `shell.php`. When you extract uploads, set the
 `check_single_file` option to run `Joomla\Filesystem\File::isSafeFile()` on such a file first; an
 unsafe file raises a `RuntimeException` and is not written. Pass an array instead of `true` to
-hand options to `isSafeFile()`:
+hand options to `isSafeFile()` (which `joomla/filesystem` provides since 4.2):
 
 ```php
 use Joomla\Archive\Archive;
