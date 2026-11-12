@@ -111,24 +111,34 @@ class Tar implements ExtractableInterface
         $this->getTarInfo($this->data);
 
         for ($i = 0, $n = \count($this->metadata); $i < $n; $i++) {
-            $type = strtolower($this->metadata[$i]['type']);
+            $type = strtolower((string) $this->metadata[$i]['type']);
 
-            if ($type == 'file' || $type == 'unix file') {
-                $buffer = $this->metadata[$i]['data'];
-                $path   = Path::clean($destination . '/' . $this->metadata[$i]['name']);
+            // Links, devices and unknown entry types are not extracted
+            if ($type !== 'file' && $type !== 'unix file' && $type !== 'directory') {
+                continue;
+            }
 
-                if (!$this->isBelow($destination, $destination . '/' . $this->metadata[$i]['name'])) {
-                    throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
+            $path = Path::clean($destination . '/' . $this->metadata[$i]['name']);
+
+            if (!$this->isBelow($destination, $destination . '/' . $this->metadata[$i]['name'])) {
+                throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
+            }
+
+            if ($type === 'directory') {
+                if (!Folder::create($path)) {
+                    throw new \RuntimeException('Unable to create destination folder ' . $path);
                 }
 
-                // Make sure the destination folder exists
-                if (!Folder::create(\dirname($path))) {
-                    throw new \RuntimeException('Unable to create destination folder ' . \dirname($path));
-                }
+                continue;
+            }
 
-                if (!File::write($path, $buffer)) {
-                    throw new \RuntimeException('Unable to write entry to file ' . $path);
-                }
+            // Make sure the destination folder exists
+            if (!Folder::create(\dirname($path))) {
+                throw new \RuntimeException('Unable to create destination folder ' . \dirname($path));
+            }
+
+            if (!File::write($path, $this->metadata[$i]['data'])) {
+                throw new \RuntimeException('Unable to write entry to file ' . $path);
             }
         }
 
@@ -173,9 +183,13 @@ class Tar implements ExtractableInterface
         $position    = 0;
         $returnArray = [];
 
+        // Records of pax extended headers: global ones apply to all following entries, the others to the next one only
+        $paxGlobal = [];
+        $paxNext   = [];
+
         while ($position < \strlen($data)) {
             $info = @unpack(
-                'Z100filename/Z8mode/Z8uid/Z8gid/Z12size/Z12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor/Z155prefix',
+                'Z100filename/Z8mode/Z8uid/Z8gid/a12size/a12mtime/Z8checksum/Ctypeflag/Z100link/Z6magic/Z2version/Z32uname/Z32gname/Z8devmajor/Z8devminor/Z155prefix',
                 $data,
                 $position
             );
@@ -205,17 +219,41 @@ class Tar implements ExtractableInterface
                 $info['filename'] = $info['prefix'] . '/' . $info['filename'];
             }
 
+            $isPaxHeader = $info['typeflag'] === 0x78 || $info['typeflag'] === 0x67;
+            $pax         = $isPaxHeader ? [] : array_merge($paxGlobal, $paxNext);
+
+            if (isset($pax['path'])) {
+                $info['filename'] = $pax['path'];
+            }
+
+            $size = isset($pax['size']) ? (int) $pax['size'] : $this->parseNumber($info['size']);
+
             $position += 512;
-            $contents = substr($data, $position, octdec($info['size']));
-            $position += (int) ceil(octdec($info['size']) / 512) * 512;
+            $contents = substr($data, $position, $size);
+            $position += (int) ceil($size / 512) * 512;
+
+            // pax extended headers (POSIX.1-2001): "x" applies to the next entry, "g" to all following entries
+            if ($isPaxHeader) {
+                $records = $this->parsePaxRecords($contents);
+
+                if ($info['typeflag'] === 0x67) {
+                    $paxGlobal = array_merge($paxGlobal, $records);
+                } else {
+                    $paxNext = $records;
+                }
+
+                continue;
+            }
+
+            $paxNext = [];
 
             if ($info['filename']) {
                 $file = [
                     'attr' => null,
                     'data' => null,
-                    'date' => octdec($info['mtime']),
+                    'date' => isset($pax['mtime']) ? (int) $pax['mtime'] : $this->parseNumber($info['mtime']),
                     'name' => trim($info['filename']),
-                    'size' => octdec($info['size']),
+                    'size' => $size,
                     'type' => self::TYPES[$info['typeflag']] ?? null,
                 ];
 
@@ -247,6 +285,85 @@ class Tar implements ExtractableInterface
         }
 
         $this->metadata = $returnArray;
+    }
+
+    /**
+     * Parse a numeric header field.
+     *
+     * The field is usually an octal number terminated by a NUL or a space. GNU tar and others store
+     * values that do not fit, such as sizes of 8 GiB and more, in base-256 instead, which is flagged by
+     * the high bit of the first byte.
+     *
+     * @param   string  $field  The raw header field
+     *
+     * @return  integer
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the field holds a negative base-256 number
+     */
+    private function parseNumber(string $field): int
+    {
+        if ($field !== '' && (\ord($field[0]) & 0x80)) {
+            if (\ord($field[0]) & 0x40) {
+                throw new \RuntimeException('Unable to decompress data: negative number in header');
+            }
+
+            $value = \ord($field[0]) & 0x3f;
+
+            for ($i = 1, $n = \strlen($field); $i < $n; $i++) {
+                $value = ($value << 8) | \ord($field[$i]);
+            }
+
+            return $value;
+        }
+
+        $field = trim(substr($field, 0, strcspn($field, "\0")), ' ');
+
+        return $field === '' ? 0 : (int) octdec($field);
+    }
+
+    /**
+     * Parse the records of a pax extended header.
+     *
+     * Each record has the form "<length> <keyword>=<value>\n", where the length counts the whole record.
+     *
+     * @param   string  $contents  The data of the pax header entry
+     *
+     * @return  array<string, string>  The values keyed by keyword
+     *
+     * @since   __DEPLOY_VERSION__
+     */
+    private function parsePaxRecords(string $contents): array
+    {
+        $records  = [];
+        $position = 0;
+        $length   = \strlen($contents);
+
+        while ($position < $length) {
+            $space = strpos($contents, ' ', $position);
+
+            if ($space === false) {
+                break;
+            }
+
+            $recordLength = (int) substr($contents, $position, $space - $position);
+
+            if ($recordLength <= $space - $position + 1 || $position + $recordLength > $length) {
+                break;
+            }
+
+            // The record without its length prefix and the trailing newline
+            $record = substr($contents, $space + 1, $position + $recordLength - $space - 2);
+            $equals = strpos($record, '=');
+
+            if ($equals !== false) {
+                $records[substr($record, 0, $equals)] = substr($record, $equals + 1);
+            }
+
+            $position += $recordLength;
+        }
+
+        return $records;
     }
 
     /**
