@@ -249,7 +249,13 @@ class Tar implements ExtractableInterface
     private function isBelow($destination, $path): bool
     {
         $absoluteRoot = rtrim(Path::clean(Path::resolve($destination)), \DIRECTORY_SEPARATOR);
-        $absolutePath = Path::clean(Path::resolve($path));
+
+        try {
+            $absolutePath = Path::clean(Path::resolve($path));
+        } catch (\Joomla\Filesystem\Exception\FilesystemException $exception) {
+            // The path climbs above the start of a relative destination path
+            return false;
+        }
 
         // Compare whole path segments, so that "/dest" does not match the sibling "/dest_evil"
         $absoluteRoot .= \DIRECTORY_SEPARATOR;

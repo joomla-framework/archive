@@ -180,6 +180,33 @@ class ZipTest extends ArchiveTestCase
         $this->assertSiblingEntryIsRejected('extractCustom');
     }
 
+    #[TestDox('An entry climbing above a relative destination path is rejected like any other entry outside of it')]
+    public function testExtractRejectsEntriesAboveRelativeDestination()
+    {
+        $archive = $this->outputPath . '/relative.zip';
+        $object  = new ArchiveZip();
+        $methods = ArchiveZip::hasNativeSupport() ? ['extractNative', 'extractCustom'] : ['extractCustom'];
+
+        $object->create($archive, [['name' => '../../x.txt', 'data' => 'content']]);
+
+        foreach ($methods as $method) {
+            $exception = null;
+
+            try {
+                // Relative to the working directory; nothing is written there
+                TestHelper::invoke($object, $method, $archive, 'archive-relative-destination');
+            } catch (\RuntimeException $exception) {
+            }
+
+            @rmdir('archive-relative-destination');
+
+            $this->assertInstanceOf(\RuntimeException::class, $exception, $method);
+            $this->assertSame('Unable to write outside of destination path', $exception->getMessage(), $method);
+        }
+
+        @unlink($archive);
+    }
+
     /**
      * Extract an archive with an entry "../dest_evil/x.php" into "dest" and check that nothing is written to "dest_evil".
      *

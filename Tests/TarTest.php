@@ -81,6 +81,26 @@ class TarTest extends ArchiveTestCase
         $this->assertInstanceOf(\OutOfBoundsException::class, $exception);
     }
 
+    #[TestDox('An entry climbing above a relative destination path is rejected like any other entry outside of it')]
+    public function testExtractRejectsEntriesAboveRelativeDestination()
+    {
+        $archive = $this->outputPath . '/relative.tar';
+
+        file_put_contents($archive, $this->createTar(['../../t.txt' => 'content']));
+
+        $exception = null;
+
+        try {
+            // Relative to the working directory; nothing is written there
+            (new ArchiveTar())->extract($archive, 'archive-relative-destination');
+        } catch (\RuntimeException $exception) {
+        }
+
+        @unlink($archive);
+
+        $this->assertInstanceOf(\OutOfBoundsException::class, $exception);
+    }
+
     #[TestDox('Entries below the destination are extracted when the destination has a trailing slash')]
     public function testExtractAcceptsDestinationWithTrailingSlash()
     {
