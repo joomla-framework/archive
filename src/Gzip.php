@@ -93,7 +93,8 @@ class Gzip implements ExtractableInterface
             $position = $this->getFilePosition();
             $buffer   = gzinflate(substr($this->data, $position, \strlen($this->data) - $position));
 
-            if (empty($buffer)) {
+            // An empty file or one containing "0" is valid, only false signals an error
+            if ($buffer === false) {
                 throw new \RuntimeException('Unable to decompress data');
             }
 
