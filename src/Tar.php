@@ -24,7 +24,7 @@ use Joomla\Filesystem\Path;
  *
  * @since  1.0
  */
-class Tar implements ExtractableInterface
+class Tar implements ExtractableInterface, ListableInterface
 {
     /**
      * Tar file types.
@@ -132,6 +132,46 @@ class Tar implements ExtractableInterface
         }
 
         return true;
+    }
+
+    /**
+     * List the entries of a Tar archive without extracting it.
+     *
+     * @param   string  $archive  Path to the Tar archive
+     *
+     * @return  array<int, array{name: string, size: int, type: string}>
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the archive cannot be read
+     */
+    public function listContents(string $archive): array
+    {
+        $this->metadata = [];
+        $this->data     = @file_get_contents($archive);
+
+        if (!$this->data) {
+            throw new \RuntimeException('Unable to read archive');
+        }
+
+        $this->getTarInfo($this->data);
+
+        $entries = [];
+
+        foreach ($this->metadata as $metadata) {
+            $type = strtolower((string) $metadata['type']);
+
+            $entries[] = [
+                'name' => $metadata['name'],
+                'size' => (int) $metadata['size'],
+                'type' => match ($type) {
+                    'file', 'unix file' => 'file',
+                    'directory'         => 'directory',
+                    default             => 'other',
+                },
+            ];
+        }
+
+        return $entries;
     }
 
     /**

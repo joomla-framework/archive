@@ -10,6 +10,7 @@ namespace Joomla\Archive\Tests;
 use Joomla\Archive\Zip as ArchiveZip;
 use Joomla\Test\TestHelper;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -162,6 +163,96 @@ class ZipTest extends ArchiveTestCase
             ArchiveZip::hasNativeSupport() || extension_loaded('zlib'),
             ArchiveZip::isSupported()
         );
+    }
+
+    /**
+     * @return  array<string, array{string}>
+     */
+    public static function dataListContents(): array
+    {
+        return [
+            'native' => ['native'],
+            'custom' => ['custom'],
+        ];
+    }
+
+    #[DataProvider('dataListContents')]
+    #[TestDox('The entries of an archive can be listed without extracting it')]
+    public function testListContents(string $mode)
+    {
+        if (!ArchiveZip::hasNativeSupport()) {
+            $this->markTestSkipped('The fixture is built with ZipArchive.');
+        }
+
+        $archive = $this->outputPath . '/list.zip';
+
+        $zip = new \ZipArchive();
+        $zip->open($archive, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addEmptyDir('dir');
+        $zip->addFromString('dir/file.txt', 'content');
+        $zip->addFromString('../outside.txt', 'x');
+        $zip->close();
+
+        $object = $mode === 'native' ? new ArchiveZip() : new class () extends ArchiveZip {
+            public static function hasNativeSupport()
+            {
+                return false;
+            }
+        };
+
+        try {
+            $entries = $object->listContents($archive);
+        } finally {
+            @unlink($archive);
+        }
+
+        $this->assertSame(
+            [
+                ['name' => 'dir/', 'size' => 0, 'type' => 'directory'],
+                ['name' => 'dir/file.txt', 'size' => 7, 'type' => 'file'],
+                ['name' => '../outside.txt', 'size' => 1, 'type' => 'file'],
+            ],
+            $entries
+        );
+    }
+
+    #[TestDox('Listing a missing archive throws an Exception')]
+    public function testListContentsMissingArchive()
+    {
+        $this->expectException(\RuntimeException::class);
+
+        (new ArchiveZip())->listContents($this->inputPath . '/foobar.zip');
+    }
+
+    /**
+     * @return  array<string, array{string, bool}>
+     */
+    public static function dataCheckZipData(): array
+    {
+        $created = 'PK' . chr(3) . chr(4);
+
+        return [
+            'text containing the local file header signature' => ['Some text ' . $created . ' with a signature', false],
+            'too short'                                        => ['PK', false],
+            'empty archive'                                    => ['PK' . chr(5) . chr(6) . str_repeat(chr(0), 18), true],
+            'empty archive with a comment'                     => ['PK' . chr(5) . chr(6) . str_repeat(chr(0), 16) . pack('v', 3) . 'abc', true],
+            'record pointing outside the data'                 => ['PK' . chr(5) . chr(6) . str_repeat(chr(0), 4) . pack('vvVVv', 1, 1, 46, 1000, 0), false],
+        ];
+    }
+
+    #[DataProvider('dataCheckZipData')]
+    #[TestDox('ZIP data is recognised by its end of central directory record')]
+    public function testCheckZipDataUsesTheEndOfCentralDirectory(string $data, bool $expected)
+    {
+        $this->assertSame($expected, (new ArchiveZip())->checkZipData($data));
+    }
+
+    #[TestDox('A truncated ZIP archive is not valid ZIP data')]
+    public function testCheckZipDataRejectsTruncatedArchives()
+    {
+        $data = file_get_contents($this->inputPath . '/logo.zip');
+
+        $this->assertFalse((new ArchiveZip())->checkZipData(substr($data, 0, -10)));
     }
 
     #[TestDox('The adapter correctly checks ZIP data')]

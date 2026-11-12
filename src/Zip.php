@@ -35,7 +35,7 @@ use Joomla\Filesystem\Path;
  *
  * @since  1.0
  */
-class Zip implements ExtractableInterface
+class Zip implements ExtractableInterface, ListableInterface
 {
     /**
      * ZIP compression methods.
@@ -193,7 +193,70 @@ class Zip implements ExtractableInterface
     }
 
     /**
+     * List the entries of a ZIP archive without extracting it.
+     *
+     * @param   string  $archive  Path to the ZIP archive
+     *
+     * @return  array<int, array{name: string, size: int, type: string}>
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the archive cannot be read
+     */
+    public function listContents(string $archive): array
+    {
+        if (!is_file($archive)) {
+            throw new \RuntimeException('Archive does not exist at ' . $archive);
+        }
+
+        $entries = [];
+
+        if (static::hasNativeSupport()) {
+            $zip = new \ZipArchive();
+
+            if ($zip->open($archive) !== true) {
+                throw new \RuntimeException('Unable to open archive');
+            }
+
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $stat = $zip->statIndex($index);
+
+                if ($stat === false) {
+                    $zip->close();
+
+                    throw new \RuntimeException('Unable to read ZIP entry');
+                }
+
+                $entries[] = ['name' => $stat['name'], 'size' => $stat['size']];
+            }
+
+            $zip->close();
+        } else {
+            $this->data = file_get_contents($archive);
+
+            if (!$this->data || !$this->readZipInfo($this->data)) {
+                throw new \RuntimeException('Unable to read archive');
+            }
+
+            foreach ($this->metadata as $metadata) {
+                $entries[] = ['name' => $metadata['name'], 'size' => $metadata['size']];
+            }
+        }
+
+        foreach ($entries as &$entry) {
+            $lastPathCharacter = substr($entry['name'], -1);
+            $entry['type']     = $lastPathCharacter === '/' || $lastPathCharacter === '\\' ? 'directory' : 'file';
+        }
+
+        unset($entry);
+
+        return $entries;
+    }
+
+    /**
      * Checks to see if the data is a valid ZIP file.
+     *
+     * The data is accepted if it ends with an end of central directory record (followed by an optional comment)
+     * that points to a central directory inside the data.
      *
      * @param   string  $data  ZIP archive data buffer.
      *
@@ -203,7 +266,32 @@ class Zip implements ExtractableInterface
      */
     public function checkZipData($data)
     {
-        return strpos($data, self::FILE_HEADER) !== false;
+        $length = \strlen($data);
+
+        // The end of central directory record has 22 bytes, followed by a comment of up to 65535 bytes
+        if ($length < 22) {
+            return false;
+        }
+
+        $position = strrpos($data, substr(self::CTRL_DIR_END, 0, 4), max(0, $length - 22 - 0xffff));
+
+        if ($position === false || $position + 22 > $length) {
+            return false;
+        }
+
+        $record = unpack('vEntries/VSize/VOffset/vCommentLength', $data, $position + 10);
+
+        if ($position + 22 + $record['CommentLength'] > $length) {
+            return false;
+        }
+
+        // An empty archive has no central directory; a ZIP64 archive keeps the real values in another record
+        if ($record['Entries'] === 0 || $record['Offset'] === 0xffffffff || $record['Size'] === 0xffffffff) {
+            return true;
+        }
+
+        return $record['Offset'] + $record['Size'] <= $position
+            && substr($data, $record['Offset'], 4) === self::CTRL_DIR_HEADER;
     }
 
     /**
