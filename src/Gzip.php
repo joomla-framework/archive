@@ -102,7 +102,7 @@ class Gzip implements ExtractableInterface
             }
         } else {
             // New style! streams!
-            $input = Stream::getStream();
+            $input = Stream::getStream(false);
 
             // Use gz
             $input->set('processingmethod', 'gz');
@@ -111,7 +111,7 @@ class Gzip implements ExtractableInterface
                 throw new \RuntimeException('Unable to read archive');
             }
 
-            $output = Stream::getStream();
+            $output = Stream::getStream(false);
 
             if (!$output->open($destination, 'w')) {
                 $input->close();
@@ -119,17 +119,19 @@ class Gzip implements ExtractableInterface
                 throw new \RuntimeException('Unable to open file "' . $destination . '" for writing');
             }
 
-            do {
+            while (!$input->eof()) {
                 $this->data = $input->read($input->get('chunksize', 8196));
 
-                if ($this->data) {
-                    if (!$output->write($this->data)) {
-                        $input->close();
-
-                        throw new \RuntimeException('Unable to write archive to file ' . $destination);
-                    }
+                if ($this->data === '') {
+                    break;
                 }
-            } while ($this->data);
+
+                if (!$output->write($this->data)) {
+                    $input->close();
+
+                    throw new \RuntimeException('Unable to write archive to file ' . $destination);
+                }
+            }
 
             $output->close();
             $input->close();

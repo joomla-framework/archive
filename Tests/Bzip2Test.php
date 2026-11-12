@@ -61,6 +61,11 @@ class Bzip2Test extends ArchiveTestCase
             $this->markTestSkipped('Bzip2 files can not be extracted.');
         }
 
+        if (\PHP_OS_FAMILY === 'Windows') {
+            // joomla/filesystem up to 4.2.1 reads the drive letter of an absolute path as a URL scheme
+            $this->markTestSkipped('Stream does not detect the processing method for Windows paths, see joomla-framework/filesystem#88.');
+        }
+
         $object = new ArchiveBzip2(['use_streams' => true]);
         $object->extract(
             $this->inputPath . '/logo.png.bz2',
