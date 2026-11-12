@@ -120,6 +120,110 @@ class ArchiveTest extends ArchiveTestCase
         @unlink($this->outputPath . "/$extractedFilename");
     }
 
+    #[TestDox('Tarballs with an upper-case .TGZ or .TBZ2 extension are extracted as tarballs')]
+    public function testExtractUpperCaseTarballExtension()
+    {
+        $tar = file_get_contents($this->inputPath . '/logo.tar');
+
+        foreach (['TGZ' => 'gzencode', 'TBZ2' => 'bzcompress'] as $extension => $compress) {
+            if (!function_exists($compress)) {
+                continue;
+            }
+
+            $archive = $this->outputPath . '/logo.' . $extension;
+            file_put_contents($archive, $compress($tar));
+
+            try {
+                $this->fixture->extract($archive, $this->outputPath);
+
+                $extracted = is_file($this->outputPath . '/logo-tar.png');
+                $copied    = is_file($this->outputPath . '/logo');
+            } finally {
+                @unlink($archive);
+                @unlink($this->outputPath . '/logo-tar.png');
+                @unlink($this->outputPath . '/logo');
+            }
+
+            $this->assertTrue($extracted, $extension . ': the tarball must be extracted');
+            $this->assertFalse($copied, $extension . ': the tarball must not be copied as a single file');
+        }
+    }
+
+    #[TestDox('The temporary file is removed when the inner tarball cannot be extracted')]
+    public function testExtractRemovesTemporaryFileOnError()
+    {
+        $tmpPath = $this->outputPath . '/tmp';
+        $archive = $this->outputPath . '/broken.tgz';
+
+        @mkdir($tmpPath);
+
+        // A tarball with an entry outside of the destination
+        $tar = file_get_contents($this->inputPath . '/logo.tar');
+        $tar = substr_replace($tar, str_pad('../outside.png', 100, chr(0)), 0, 100);
+        file_put_contents($archive, gzencode($tar));
+
+        $exception = null;
+
+        try {
+            (new Archive(['tmp_path' => $tmpPath]))->extract($archive, $this->outputPath . '/broken');
+        } catch (\OutOfBoundsException $exception) {
+        }
+
+        $leftOver = array_values(array_diff(scandir($tmpPath), ['.', '..']));
+
+        @unlink($archive);
+        @rmdir($this->outputPath . '/broken');
+        array_map('unlink', glob($tmpPath . '/*') ?: []);
+        @rmdir($tmpPath);
+
+        $this->assertInstanceOf(\OutOfBoundsException::class, $exception);
+        $this->assertSame([], $leftOver);
+    }
+
+    #[TestDox('A corrupt gzip file throws an exception like the other archive types')]
+    public function testExtractCorruptGzipThrows()
+    {
+        $archive = $this->outputPath . '/corrupt.txt.gz';
+
+        file_put_contents($archive, substr(gzencode('content'), 0, 10) . 'garbage');
+
+        $this->expectException(\RuntimeException::class);
+
+        try {
+            @$this->fixture->extract($archive, $this->outputPath);
+        } finally {
+            @unlink($archive);
+        }
+    }
+
+    #[TestDox('A single compressed file is extracted under the archive name, and can be checked with File::isSafeFile()')]
+    public function testExtractSingleFileSafetyCheck()
+    {
+        $archive = $this->outputPath . '/shell.php.gz';
+
+        file_put_contents($archive, gzencode('<?php echo "pwned";'));
+
+        try {
+            $this->assertTrue($this->fixture->extract($archive, $this->outputPath));
+            $this->assertFileExists($this->outputPath . '/shell.php', 'Without the option the file is extracted under its own name');
+            unlink($this->outputPath . '/shell.php');
+
+            $exception = null;
+
+            try {
+                (new Archive(['check_single_file' => true]))->extract($archive, $this->outputPath);
+            } catch (\RuntimeException $exception) {
+            }
+
+            $this->assertInstanceOf(\RuntimeException::class, $exception);
+            $this->assertSame('The extracted file "shell.php" is not safe', $exception->getMessage());
+            $this->assertFileDoesNotExist($this->outputPath . '/shell.php');
+        } finally {
+            @unlink($archive);
+            @unlink($this->outputPath . '/shell.php');
+        }
+    }
+
     #[TestDox('Extracting an unknown archive type throws an Exception')]
     public function testExtractUnknown()
     {

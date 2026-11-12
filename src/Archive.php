@@ -69,12 +69,11 @@ class Archive
      *
      * @since   1.0
      * @throws  UnknownArchiveException if the archive type is not supported
+     * @throws  \RuntimeException if the archive cannot be extracted
      */
     public function extract($archivename, $extractdir)
     {
-        $ext      = pathinfo($archivename, \PATHINFO_EXTENSION);
-        $path     = pathinfo($archivename, \PATHINFO_DIRNAME);
-        $filename = pathinfo($archivename, \PATHINFO_FILENAME);
+        $ext = pathinfo($archivename, \PATHINFO_EXTENSION);
 
         switch (strtolower($ext)) {
             case 'zip':
@@ -90,50 +89,14 @@ class Archive
             case 'tgz':
             case 'gz':
             case 'gzip':
-                // This may just be an individual file (e.g. sql script)
-                $tmpfname = $this->options['tmp_path'] . '/' . uniqid('gzip');
-
-                try {
-                    $this->getAdapter('gzip')->extract($archivename, $tmpfname);
-                } catch (\RuntimeException $exception) {
-                    @unlink($tmpfname);
-
-                    return false;
-                }
-
-                if ($ext === 'tgz' || stripos($filename, '.tar') !== false) {
-                    $result = $this->getAdapter('tar')->extract($tmpfname, $extractdir);
-                } else {
-                    Folder::create($extractdir);
-                    $result = File::copy($tmpfname, $extractdir . '/' . $filename, null, false);
-                }
-
-                @unlink($tmpfname);
+                $result = $this->extractCompressedFile('gzip', $archivename, $extractdir);
 
                 break;
 
             case 'tbz2':
             case 'bz2':
             case 'bzip2':
-                // This may just be an individual file (e.g. sql script)
-                $tmpfname = $this->options['tmp_path'] . '/' . uniqid('bzip2');
-
-                try {
-                    $this->getAdapter('bzip2')->extract($archivename, $tmpfname);
-                } catch (\RuntimeException $exception) {
-                    @unlink($tmpfname);
-
-                    return false;
-                }
-
-                if ($ext === 'tbz2' || stripos($filename, '.tar') !== false) {
-                    $result = $this->getAdapter('tar')->extract($tmpfname, $extractdir);
-                } else {
-                    Folder::create($extractdir);
-                    $result = File::copy($tmpfname, $extractdir . '/' . $filename, null, false);
-                }
-
-                @unlink($tmpfname);
+                $result = $this->extractCompressedFile('bzip2', $archivename, $extractdir);
 
                 break;
 
@@ -142,6 +105,81 @@ class Archive
         }
 
         return $result;
+    }
+
+    /**
+     * Extract a gzip or bzip2 compressed file.
+     *
+     * The file is decompressed into a temporary file first. If it is a tarball (.tgz, .tbz2 or .tar in the name), the
+     * tarball is extracted into the directory; otherwise the decompressed file is copied there under the archive's name
+     * without the compression extension.
+     *
+     * @param   string  $type         The adapter type (gzip or bzip2)
+     * @param   string  $archivename  The name of the archive file
+     * @param   string  $extractdir   Directory to unpack into
+     *
+     * @return  boolean  True for success
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the archive cannot be extracted
+     */
+    private function extractCompressedFile(string $type, string $archivename, string $extractdir): bool
+    {
+        $ext      = strtolower(pathinfo($archivename, \PATHINFO_EXTENSION));
+        $filename = pathinfo($archivename, \PATHINFO_FILENAME);
+
+        // tempnam() creates the file exclusively under an unpredictable name, so nobody can plant a symlink there
+        $tmpfname = @tempnam($this->options['tmp_path'], $type);
+
+        if ($tmpfname === false) {
+            throw new \RuntimeException('Unable to create a temporary file in ' . $this->options['tmp_path']);
+        }
+
+        try {
+            $this->getAdapter($type)->extract($archivename, $tmpfname);
+
+            if ($ext === 'tgz' || $ext === 'tbz2' || stripos($filename, '.tar') !== false) {
+                return $this->getAdapter('tar')->extract($tmpfname, $extractdir);
+            }
+
+            // This is just an individual file (e.g. sql script)
+            if (!empty($this->options['check_single_file'])) {
+                $this->checkSingleFile($filename, $tmpfname);
+            }
+
+            Folder::create($extractdir);
+
+            return File::copy($tmpfname, $extractdir . '/' . $filename, null, false);
+        } finally {
+            @unlink($tmpfname);
+        }
+    }
+
+    /**
+     * Check a decompressed single file with File::isSafeFile() before it is copied to the destination.
+     *
+     * @param   string  $filename  The name the file will get in the destination
+     * @param   string  $tmpfname  The decompressed temporary file
+     *
+     * @return  void
+     *
+     * @since   __DEPLOY_VERSION__
+     * @throws  \RuntimeException if the file is not safe
+     */
+    private function checkSingleFile(string $filename, string $tmpfname): void
+    {
+        $options = \is_array($this->options['check_single_file']) ? $this->options['check_single_file'] : [];
+        $file    = [
+            'name'     => $filename,
+            'type'     => '',
+            'tmp_name' => $tmpfname,
+            'error'    => 0,
+            'size'     => filesize($tmpfname),
+        ];
+
+        if (!File::isSafeFile($file, $options)) {
+            throw new \RuntimeException(sprintf('The extracted file "%s" is not safe', $filename));
+        }
     }
 
     /**
