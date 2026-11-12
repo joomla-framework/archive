@@ -17,6 +17,8 @@ TODO
 example `../../index.php`. The check compares whole path segments, so an entry like
 `../uploads_public/shell.php` extracted into `/var/www/uploads` is rejected as well, although
 `/var/www/uploads_public` starts with the same characters. On Windows the comparison ignores case.
+An entry that climbs above a relative destination path (`../../x` extracted into `uploads`) is
+rejected the same way instead of raising a `Joomla\Filesystem\Exception\FilesystemException`.
 
 The check is lexical: it does not resolve symlinks, so a symlink that already exists inside the
 destination is followed. Extract untrusted archives into a new, empty directory.
