@@ -10,18 +10,17 @@ namespace Joomla\Archive\Tests;
 use Joomla\Archive\Bzip2 as ArchiveBzip2;
 use Joomla\Archive\Tar as ArchiveTar;
 use Joomla\Test\TestHelper;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestDox;
 
 /**
  * Test class for Joomla\Archive\Bzip2.
  */
+#[CoversClass(ArchiveBzip2::class)]
 class Bzip2Test extends ArchiveTestCase
 {
-    /**
-     * @testdox  The bzip2 adapter is instantiated correctly
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('The bzip2 adapter is instantiated correctly')]
     public function test__construct()
     {
         $object = new ArchiveBzip2();
@@ -34,11 +33,7 @@ class Bzip2Test extends ArchiveTestCase
         $this->assertSame($options, TestHelper::getValue($object, 'options'));
     }
 
-    /**
-     * @testdox  An archive can be extracted
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An archive can be extracted')]
     public function testExtract()
     {
         if (!ArchiveBzip2::isSupported()) {
@@ -61,11 +56,7 @@ class Bzip2Test extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-bz2.png');
     }
 
-    /**
-     * @testdox  An archive can be extracted via streams
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An archive can be extracted via streams')]
     public function testExtractWithStreams()
     {
         $this->markTestSkipped('There is a bug, see https://bugs.php.net/bug.php?id=63195&edit=1');
@@ -89,11 +80,7 @@ class Bzip2Test extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-bz2.png');
     }
 
-    /**
-     * @testdox  The adapter detects if the environment is supported
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('The adapter detects if the environment is supported')]
     public function testIsSupported()
     {
         $this->assertSame(
@@ -102,11 +89,7 @@ class Bzip2Test extends ArchiveTestCase
         );
     }
 
-    /**
-     * @testdox  A single file is compressed as it is and can be read back
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('A single file is compressed as it is and can be read back')]
     public function testCreateWithASingleFile()
     {
         if (!ArchiveBzip2::isSupported()) {
@@ -130,11 +113,7 @@ class Bzip2Test extends ArchiveTestCase
         @unlink($this->outputPath . '/logo-created.png');
     }
 
-    /**
-     * @testdox  An archive named as a tarball wraps its contents in a tar
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An archive named as a tarball wraps its contents in a tar')]
     #[DataProvider('tarballNameProvider')]
     public function testCreateWrapsTarballsInATar(string $name)
     {
@@ -181,11 +160,7 @@ class Bzip2Test extends ArchiveTestCase
         ];
     }
 
-    /**
-     * @testdox  Several files cannot be stored in an archive that is not named as a tarball
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('Several files cannot be stored in an archive that is not named as a tarball')]
     public function testCreateRejectsSeveralFilesWithoutATarballName()
     {
         $object = new ArchiveBzip2();
@@ -198,11 +173,7 @@ class Bzip2Test extends ArchiveTestCase
         ]);
     }
 
-    /**
-     * @testdox  An empty file list is rejected
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An empty file list is rejected')]
     public function testCreateRejectsAnEmptyFileList()
     {
         $object = new ArchiveBzip2();
@@ -212,11 +183,7 @@ class Bzip2Test extends ArchiveTestCase
         $object->create($this->outputPath . '/empty.bz2', []);
     }
 
-    /**
-     * @testdox  An out of range block size is rejected
-     *
-     * @covers   Joomla\Archive\Bzip2
-     */
+    #[TestDox('An out of range block size is rejected')]
     public function testCreateRejectsAnInvalidBlockSize()
     {
         $object = new ArchiveBzip2(['bzip2_blocksize' => 0]);
