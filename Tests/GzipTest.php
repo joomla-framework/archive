@@ -10,6 +10,7 @@ namespace Joomla\Archive\Tests;
 use Joomla\Archive\Gzip as ArchiveGzip;
 use Joomla\Test\TestHelper;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestDox;
 
 /**
@@ -78,6 +79,68 @@ class GzipTest extends ArchiveTestCase
         );
 
         @unlink($this->outputPath . '/logo-gz.png');
+    }
+
+    /**
+     * @return  array<string, array{string}>
+     */
+    public static function dataFalsyContent(): array
+    {
+        return [
+            'empty file'  => [''],
+            'file with 0' => ['0'],
+        ];
+    }
+
+    #[DataProvider('dataFalsyContent')]
+    #[TestDox('A file whose content is empty or "0" can be extracted')]
+    public function testExtractFalsyContent(string $content)
+    {
+        if (!ArchiveGzip::isSupported()) {
+            $this->markTestSkipped('Gzip files can not be extracted.');
+        }
+
+        $archive     = $this->outputPath . '/falsy.txt.gz';
+        $destination = $this->outputPath . '/falsy.txt';
+
+        file_put_contents($archive, gzencode($content));
+
+        try {
+            $this->assertTrue((new ArchiveGzip())->extract($archive, $destination));
+            $this->assertSame($content, file_get_contents($destination));
+        } finally {
+            @unlink($archive);
+            @unlink($destination);
+        }
+    }
+
+    #[TestDox('Corrupt data is reported as an error and nothing is written')]
+    public function testExtractCorruptData()
+    {
+        if (!ArchiveGzip::isSupported()) {
+            $this->markTestSkipped('Gzip files can not be extracted.');
+        }
+
+        $archive     = $this->outputPath . '/corrupt.txt.gz';
+        $destination = $this->outputPath . '/corrupt.txt';
+
+        file_put_contents($archive, substr(gzencode('content'), 0, 10) . 'garbage');
+
+        try {
+            @(new ArchiveGzip())->extract($archive, $destination);
+
+            $exception = null;
+        } catch (\RuntimeException $exception) {
+        }
+
+        $written = is_file($destination);
+
+        @unlink($archive);
+        @unlink($destination);
+
+        $this->assertInstanceOf(\RuntimeException::class, $exception);
+        $this->assertSame('Unable to decompress data', $exception->getMessage());
+        $this->assertFalse($written);
     }
 
     #[TestDox('The adapter detects if the environment is supported')]

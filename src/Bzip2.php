@@ -80,7 +80,8 @@ class Bzip2 implements ExtractableInterface
             $buffer = bzdecompress($this->data);
             unset($this->data);
 
-            if (empty($buffer)) {
+            // An empty file or one containing "0" is valid; on error bzdecompress() returns false or an error code
+            if (!\is_string($buffer)) {
                 throw new \RuntimeException('Unable to decompress data');
             }
 
