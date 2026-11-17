@@ -26,6 +26,7 @@ interface ExtractableInterface
      *
      * @since   1.0
      * @throws  \RuntimeException
+     * @throws  Exception\UnsafeArchiveEntryException if an entry would be written outside of the destination path
      */
     public function extract($archive, $destination);
 

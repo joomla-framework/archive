@@ -7,9 +7,11 @@
 
 namespace Joomla\Archive\Tests;
 
+use Joomla\Archive\Exception\UnsafeArchiveEntryException;
 use Joomla\Archive\Zip as ArchiveZip;
 use Joomla\Test\TestHelper;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
 use PHPUnit\Framework\Attributes\TestDox;
 
@@ -162,6 +164,78 @@ class ZipTest extends ArchiveTestCase
             ArchiveZip::hasNativeSupport() || extension_loaded('zlib'),
             ArchiveZip::isSupported()
         );
+    }
+
+    /**
+     * @return  array<string, array{string}>
+     */
+    public static function dataExtractionMethods(): array
+    {
+        return [
+            'native' => ['extractNative'],
+            'custom' => ['extractCustom'],
+        ];
+    }
+
+    #[DataProvider('dataExtractionMethods')]
+    #[TestDox('Directory entries are extracted, so empty directories are kept')]
+    public function testExtractCreatesDirectoryEntries(string $method)
+    {
+        if (!ArchiveZip::hasNativeSupport()) {
+            $this->markTestSkipped('The fixture is built with ZipArchive.');
+        }
+
+        $archive     = $this->outputPath . '/directories.zip';
+        $destination = $this->outputPath . '/directories';
+
+        $zip = new \ZipArchive();
+        $zip->open($archive, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addEmptyDir('empty');
+        $zip->addFromString('file.txt', 'content');
+        $zip->close();
+
+        try {
+            TestHelper::invoke(new ArchiveZip(), $method, $archive, $destination);
+
+            $isDir = is_dir($destination . '/empty');
+        } finally {
+            @rmdir($destination . '/empty');
+            @unlink($destination . '/file.txt');
+            @rmdir($destination);
+            @unlink($archive);
+        }
+
+        $this->assertTrue($isDir);
+    }
+
+    #[DataProvider('dataExtractionMethods')]
+    #[TestDox('An entry outside of the destination raises an UnsafeArchiveEntryException')]
+    public function testExtractThrowsUnsafeArchiveEntryException(string $method)
+    {
+        if ($method === 'extractNative' && !ArchiveZip::hasNativeSupport()) {
+            $this->markTestSkipped('ZIP files can not be extracted natively.');
+        }
+
+        $archive     = $this->outputPath . '/unsafe.zip';
+        $destination = $this->outputPath . '/unsafe';
+        $object      = new ArchiveZip();
+
+        $object->create($archive, [['name' => '../outside.txt', 'data' => 'content']]);
+
+        $exception = null;
+
+        try {
+            TestHelper::invoke($object, $method, $archive, $destination);
+        } catch (\RuntimeException $exception) {
+        }
+
+        @unlink($this->outputPath . '/outside.txt');
+        @rmdir($destination);
+        @unlink($archive);
+
+        $this->assertInstanceOf(UnsafeArchiveEntryException::class, $exception);
+        $this->assertInstanceOf(\OutOfBoundsException::class, $exception);
+        $this->assertSame(100, $exception->getCode());
     }
 
     #[TestDox('The adapter correctly checks ZIP data')]

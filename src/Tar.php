@@ -9,6 +9,7 @@
 
 namespace Joomla\Archive;
 
+use Joomla\Archive\Exception\UnsafeArchiveEntryException;
 use Joomla\Filesystem\File;
 use Joomla\Filesystem\Folder;
 use Joomla\Filesystem\Path;
@@ -97,6 +98,7 @@ class Tar implements ExtractableInterface
      *
      * @since   1.0
      * @throws  \RuntimeException
+     * @throws  UnsafeArchiveEntryException if an entry would be written outside of the destination path
      */
     public function extract($archive, $destination)
     {
@@ -117,7 +119,7 @@ class Tar implements ExtractableInterface
                 $path   = Path::clean($destination . '/' . $this->metadata[$i]['name']);
 
                 if (!$this->isBelow($destination, $destination . '/' . $this->metadata[$i]['name'])) {
-                    throw new \OutOfBoundsException('Unable to write outside of destination path', 100);
+                    throw new UnsafeArchiveEntryException('Unable to write outside of destination path', 100);
                 }
 
                 // Make sure the destination folder exists

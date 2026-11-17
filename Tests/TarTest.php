@@ -7,6 +7,7 @@
 
 namespace Joomla\Archive\Tests;
 
+use Joomla\Archive\Exception\UnsafeArchiveEntryException;
 use Joomla\Archive\Tar as ArchiveTar;
 use Joomla\Test\TestHelper;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -46,6 +47,31 @@ class TarTest extends ArchiveTestCase
         if (is_file($this->outputPath . '/logo-tar.png')) {
             unlink($this->outputPath . '/logo-tar.png');
         }
+    }
+
+    #[TestDox('An entry outside of the destination raises an UnsafeArchiveEntryException')]
+    public function testExtractThrowsUnsafeArchiveEntryException()
+    {
+        $archive     = $this->outputPath . '/unsafe.tar';
+        $destination = $this->outputPath . '/unsafe';
+
+        // The fixture with its only entry renamed
+        $tar = file_get_contents($this->inputPath . '/logo.tar');
+        file_put_contents($archive, substr_replace($tar, str_pad('../outside.png', 100, chr(0)), 0, 100));
+
+        $exception = null;
+
+        try {
+            (new ArchiveTar())->extract($archive, $destination);
+        } catch (\RuntimeException $exception) {
+        }
+
+        @unlink($this->outputPath . '/outside.png');
+        @rmdir($destination);
+        @unlink($archive);
+
+        $this->assertInstanceOf(UnsafeArchiveEntryException::class, $exception);
+        $this->assertSame(100, $exception->getCode());
     }
 
     #[TestDox('The adapter detects if the environment is supported')]
